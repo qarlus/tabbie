@@ -7,7 +7,7 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans" })
 const geistMono = Geist_Mono({ subsets: ["latin"], variable: "--font-geist-mono" })
 
 export const metadata: Metadata = {
-  title: "DevTab — Developer New Tab",
+  title: "New Tab",
   description: "A focused personal dashboard for GitHub activity, shortcuts, repositories, and daily tasks.",
   generator: "v0.app",
 }
