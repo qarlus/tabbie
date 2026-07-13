@@ -21,10 +21,18 @@ export type GithubItem = {
   state?: string
 }
 
+export type GithubOrganization = {
+  login: string
+  avatarUrl: string
+  url: string
+  description?: string
+}
+
 export type GithubData = {
   pulls: GithubItem[]
   issues: GithubItem[]
   notifications: GithubItem[]
+  organizations: GithubOrganization[]
   counts: { pulls: number; issues: number; notifications: number }
 }
 

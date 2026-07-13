@@ -27,10 +27,11 @@ export async function GET(request: NextRequest) {
 
   try {
     const query = encodeURIComponent(`author:${username} created:>=${new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10)}`)
-    const [pullResponse, issueResponse, notificationResponse] = await Promise.all([
+    const [pullResponse, issueResponse, notificationResponse, organizationResponse] = await Promise.all([
       fetch(`https://api.github.com/search/issues?q=${query}+type:pr&sort=updated&per_page=20`, { headers: headersFor(token), cache: "no-store" }),
       fetch(`https://api.github.com/search/issues?q=${query}+type:issue&sort=updated&per_page=20`, { headers: headersFor(token), cache: "no-store" }),
       token ? fetch("https://api.github.com/notifications?all=false&participating=false&per_page=20", { headers: headersFor(token), cache: "no-store" }) : null,
+      fetch(token ? "https://api.github.com/user/orgs?per_page=100" : `https://api.github.com/users/${encodeURIComponent(username)}/orgs?per_page=100`, { headers: headersFor(token), cache: "no-store" }),
     ])
 
     if (!pullResponse.ok || !issueResponse.ok) {
@@ -38,10 +39,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: failed.status === 403 ? "GitHub rate limit reached. Add a token or try again later." : "GitHub could not load this account." }, { status: failed.status })
     }
 
-    const [pullData, issueData, notificationData] = await Promise.all([
+    const [pullData, issueData, notificationData, organizationData] = await Promise.all([
       pullResponse.json(),
       issueResponse.json(),
       notificationResponse?.ok ? notificationResponse.json() : Promise.resolve([]),
+      organizationResponse.ok ? organizationResponse.json() : Promise.resolve([]),
     ])
 
     const normalizeSearch = (item: Record<string, unknown>, type: "pull" | "issue"): GithubItem => {
@@ -75,6 +77,12 @@ export async function GET(request: NextRequest) {
       pulls: (pullData.items as Record<string, unknown>[]).map((item) => normalizeSearch(item, "pull")),
       issues: (issueData.items as Record<string, unknown>[]).map((item) => normalizeSearch(item, "issue")),
       notifications,
+      organizations: (organizationData as Record<string, unknown>[]).map((organization) => ({
+        login: String(organization.login),
+        avatarUrl: String(organization.avatar_url),
+        url: String(organization.html_url),
+        description: organization.description ? String(organization.description) : undefined,
+      })),
       counts: { pulls: pullData.total_count, issues: issueData.total_count, notifications: notifications.length },
     })
   } catch {
