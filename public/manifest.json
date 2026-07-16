@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Tabbie — Local-first New Tab",
+  "short_name": "Tabbie",
+  "version": "0.2.0",
+  "description": "A calm, beautiful, local-first new tab. Your data stays in this browser — optional bookmarks when you allow them.",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "permissions": ["favicon"],
+  "optional_permissions": ["bookmarks"],
+  "host_permissions": [
+    "https://api.github.com/*",
+    "https://api.linear.app/*",
+    "https://www.google.com/*",
+    "https://icons.duckduckgo.com/*",
+    "https://*/*",
+    "http://*/*"
+  ],
+  "icons": {
+    "32": "icon-32.png",
+    "128": "icon-128.png",
+    "512": "icon-512.png"
+  }
+}

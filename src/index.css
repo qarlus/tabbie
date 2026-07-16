@@ -1,0 +1,676 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.625rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* defaults = slate (pre-effect paint) */
+    --ac: 215 18% 40%;
+    --page-bg: 220 14% 96%;
+    --wash: linear-gradient(165deg, hsl(220 16% 94%) 0%, hsl(215 12% 97%) 50%, hsl(210 10% 95%) 100%);
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* defaults = slate dark */
+    --ac: 210 20% 64%;
+    --page-bg: 222 12% 7%;
+    --wash: linear-gradient(165deg, hsl(222 14% 9%) 0%, hsl(220 10% 6%) 50%, hsl(215 12% 8%) 100%);
+  }
+}
+
+/* ---------- Curated themes (data-theme on <html>) ---------- */
+
+@layer base {
+  /* Slate — cool steel */
+  html[data-theme="slate"] {
+    --ac: 215 18% 40%;
+    --page-bg: 220 14% 96%;
+    --wash: linear-gradient(165deg, hsl(220 16% 94%) 0%, hsl(215 12% 97%) 50%, hsl(210 10% 95%) 100%);
+  }
+  html.dark[data-theme="slate"] {
+    --ac: 210 20% 64%;
+    --page-bg: 222 12% 7%;
+    --wash: linear-gradient(165deg, hsl(222 14% 9%) 0%, hsl(220 10% 6%) 50%, hsl(215 12% 8%) 100%);
+  }
+
+  /* Ink — near-mono */
+  html[data-theme="ink"] {
+    --ac: 240 4% 32%;
+    --page-bg: 0 0% 98%;
+    --wash: linear-gradient(180deg, hsl(0 0% 99%) 0%, hsl(240 3% 96%) 100%);
+  }
+  html.dark[data-theme="ink"] {
+    --ac: 0 0% 72%;
+    --page-bg: 240 5% 5%;
+    --wash: linear-gradient(180deg, hsl(240 4% 7%) 0%, hsl(0 0% 4%) 100%);
+  }
+
+  /* Ocean — blue-gray + teal */
+  html[data-theme="ocean"] {
+    --ac: 188 42% 34%;
+    --page-bg: 200 22% 96%;
+    --wash: linear-gradient(160deg, hsl(200 28% 93%) 0%, hsl(195 18% 97%) 55%, hsl(210 20% 95%) 100%);
+  }
+  html.dark[data-theme="ocean"] {
+    --ac: 186 45% 55%;
+    --page-bg: 210 22% 7%;
+    --wash: linear-gradient(160deg, hsl(210 24% 9%) 0%, hsl(200 18% 6%) 55%, hsl(215 20% 8%) 100%);
+  }
+
+  /* Sage — muted green */
+  html[data-theme="sage"] {
+    --ac: 152 16% 34%;
+    --page-bg: 140 10% 96%;
+    --wash: linear-gradient(165deg, hsl(140 12% 93%) 0%, hsl(120 8% 97%) 50%, hsl(150 10% 95%) 100%);
+  }
+  html.dark[data-theme="sage"] {
+    --ac: 148 22% 58%;
+    --page-bg: 150 10% 6%;
+    --wash: linear-gradient(165deg, hsl(150 12% 8%) 0%, hsl(140 8% 5%) 50%, hsl(160 10% 7%) 100%);
+  }
+
+  /* Amber — warm charcoal + copper */
+  html[data-theme="amber"] {
+    --ac: 28 48% 40%;
+    --page-bg: 30 10% 96%;
+    --wash: linear-gradient(165deg, hsl(28 12% 93%) 0%, hsl(35 8% 97%) 50%, hsl(20 10% 95%) 100%);
+  }
+  html.dark[data-theme="amber"] {
+    --ac: 30 55% 58%;
+    --page-bg: 24 10% 6%;
+    --wash: linear-gradient(165deg, hsl(24 12% 8%) 0%, hsl(30 8% 5%) 50%, hsl(18 10% 7%) 100%);
+  }
+
+  /* Rose — soft warm gray + dusty rose */
+  html[data-theme="rose"] {
+    --ac: 350 22% 46%;
+    --page-bg: 20 8% 96%;
+    --wash: linear-gradient(165deg, hsl(350 10% 94%) 0%, hsl(20 6% 97%) 50%, hsl(10 8% 95%) 100%);
+  }
+  html.dark[data-theme="rose"] {
+    --ac: 350 28% 68%;
+    --page-bg: 350 8% 7%;
+    --wash: linear-gradient(165deg, hsl(350 10% 9%) 0%, hsl(20 6% 5%) 50%, hsl(340 8% 7%) 100%);
+  }
+
+  /* Cobalt — clear blue */
+  html[data-theme="cobalt"] {
+    --ac: 217 55% 42%;
+    --page-bg: 218 28% 96%;
+    --wash: linear-gradient(165deg, hsl(218 32% 93%) 0%, hsl(210 20% 97%) 50%, hsl(222 24% 95%) 100%);
+  }
+  html.dark[data-theme="cobalt"] {
+    --ac: 214 70% 68%;
+    --page-bg: 220 28% 7%;
+    --wash: linear-gradient(165deg, hsl(220 30% 9%) 0%, hsl(215 22% 6%) 50%, hsl(225 26% 8%) 100%);
+  }
+
+  /* Coral — warm coral */
+  html[data-theme="coral"] {
+    --ac: 12 58% 48%;
+    --page-bg: 14 18% 96%;
+    --wash: linear-gradient(165deg, hsl(14 22% 93%) 0%, hsl(20 12% 97%) 50%, hsl(8 16% 95%) 100%);
+  }
+  html.dark[data-theme="coral"] {
+    --ac: 14 70% 62%;
+    --page-bg: 12 16% 7%;
+    --wash: linear-gradient(165deg, hsl(12 18% 9%) 0%, hsl(18 12% 5%) 50%, hsl(6 14% 7%) 100%);
+  }
+
+  /* Olive — earthy olive */
+  html[data-theme="olive"] {
+    --ac: 78 22% 32%;
+    --page-bg: 70 10% 95%;
+    --wash: linear-gradient(165deg, hsl(70 12% 92%) 0%, hsl(55 8% 96%) 50%, hsl(85 10% 94%) 100%);
+  }
+  html.dark[data-theme="olive"] {
+    --ac: 75 28% 58%;
+    --page-bg: 70 8% 6%;
+    --wash: linear-gradient(165deg, hsl(70 10% 8%) 0%, hsl(55 6% 5%) 50%, hsl(85 8% 7%) 100%);
+  }
+
+  /* Berry — muted magenta */
+  html[data-theme="berry"] {
+    --ac: 320 28% 42%;
+    --page-bg: 320 12% 96%;
+    --wash: linear-gradient(165deg, hsl(320 14% 93%) 0%, hsl(300 8% 97%) 50%, hsl(330 10% 95%) 100%);
+  }
+  html.dark[data-theme="berry"] {
+    --ac: 318 35% 68%;
+    --page-bg: 320 12% 7%;
+    --wash: linear-gradient(165deg, hsl(320 14% 9%) 0%, hsl(300 8% 5%) 50%, hsl(330 10% 7%) 100%);
+  }
+
+  /* Honey — golden yellow */
+  html[data-theme="honey"] {
+    --ac: 42 62% 38%;
+    --page-bg: 42 18% 95%;
+    --wash: linear-gradient(165deg, hsl(42 22% 92%) 0%, hsl(48 14% 96%) 50%, hsl(36 16% 94%) 100%);
+  }
+  html.dark[data-theme="honey"] {
+    --ac: 42 70% 58%;
+    --page-bg: 36 14% 6%;
+    --wash: linear-gradient(165deg, hsl(36 16% 8%) 0%, hsl(42 10% 5%) 50%, hsl(30 12% 7%) 100%);
+  }
+
+  /* Midnight — deep indigo */
+  html[data-theme="midnight"] {
+    --ac: 235 32% 42%;
+    --page-bg: 232 16% 96%;
+    --wash: linear-gradient(165deg, hsl(232 18% 93%) 0%, hsl(240 10% 97%) 50%, hsl(225 14% 95%) 100%);
+  }
+  html.dark[data-theme="midnight"] {
+    --ac: 234 45% 72%;
+    --page-bg: 234 18% 6%;
+    --wash: linear-gradient(165deg, hsl(234 20% 8%) 0%, hsl(240 12% 5%) 50%, hsl(228 16% 7%) 100%);
+  }
+}
+
+/* ---------- Base ---------- */
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply text-foreground antialiased;
+    background-color: hsl(var(--page-bg));
+    font-family: var(--tabbie-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+    transition: background-color 300ms ease;
+  }
+  .font-clock {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Mono UI font — clocks stay tabular either way */
+  html[data-font="mono"] .font-clock {
+    font-family: inherit;
+  }
+  ::selection {
+    background: hsl(var(--ac) / 0.28);
+  }
+}
+
+/* Font stacks (system faces only — no CDN) */
+html[data-font="sans"] {
+  --tabbie-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+html[data-font="serif"] {
+  --tabbie-font: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman",
+    serif;
+}
+html[data-font="mono"] {
+  --tabbie-font: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+}
+html[data-font="rounded"] {
+  --tabbie-font: "Segoe UI", "Trebuchet MS", "Lucida Grande", "Helvetica Neue", sans-serif;
+}
+html[data-font="editorial"] {
+  --tabbie-font: Charter, "Bitstream Charter", "Sitka Text", Georgia, "Times New Roman", serif;
+}
+
+/* ---------- Fixed background layer ---------- */
+
+.tabbie-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--wash);
+  transition: background 300ms ease, opacity 300ms ease;
+  pointer-events: none;
+}
+
+/* Soft accent bloom — ties surface texture to the active theme */
+.tabbie-accent-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 80% 55% at 18% 12%, hsl(var(--ac) / 0.14), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 88% 78%, hsl(var(--ac) / 0.1), transparent 55%);
+  opacity: 0.9;
+  transition: opacity 300ms ease;
+}
+
+html.dark .tabbie-accent-glow {
+  background:
+    radial-gradient(ellipse 80% 55% at 18% 12%, hsl(var(--ac) / 0.2), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 88% 78%, hsl(var(--ac) / 0.14), transparent 55%);
+}
+
+.tabbie-surface {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-repeat: repeat;
+  background-position: 0 0;
+}
+
+/* --- Unique materials (tile size set inline from look.ts) --- */
+
+.tabbie-surface-grain {
+  opacity: 0.28;
+  mix-blend-mode: soft-light;
+}
+
+html:not(.dark) .tabbie-surface-grain {
+  opacity: 0.34;
+  mix-blend-mode: multiply;
+}
+
+/* Bayer 8×8 at native pixels — was wrongly scaled to hundreds of px before */
+.tabbie-surface-dither {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  opacity: 0.11;
+  mix-blend-mode: overlay;
+}
+
+html:not(.dark) .tabbie-surface-dither {
+  opacity: 0.09;
+  mix-blend-mode: multiply;
+}
+
+html.dark .tabbie-surface-dither {
+  opacity: 0.14;
+  mix-blend-mode: soft-light;
+}
+
+.tabbie-surface-stipple {
+  opacity: 0.22;
+  mix-blend-mode: multiply;
+}
+
+html.dark .tabbie-surface-stipple {
+  opacity: 0.28;
+  mix-blend-mode: soft-light;
+}
+
+.tabbie-surface-paper {
+  opacity: 0.45;
+  mix-blend-mode: soft-light;
+}
+
+html:not(.dark) .tabbie-surface-paper {
+  opacity: 0.38;
+  mix-blend-mode: multiply;
+}
+
+.tabbie-surface-hatch {
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+}
+
+html.dark .tabbie-surface-hatch {
+  opacity: 0.22;
+  mix-blend-mode: soft-light;
+}
+
+/* ---------- Motion preferences & micro-interactions ---------- */
+
+@keyframes tabbie-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes tabbie-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.tabbie-enter {
+  animation: tabbie-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tabbie-enter-delay-1 {
+  animation-delay: 50ms;
+}
+
+.tabbie-enter-delay-2 {
+  animation-delay: 110ms;
+}
+
+.tabbie-enter-delay-3 {
+  animation-delay: 170ms;
+}
+
+.tabbie-module-enter {
+  animation: tabbie-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tabbie-tab-enter {
+  animation: tabbie-fade 0.2s ease-out both;
+}
+
+/* ---------- Weather condition motion ---------- */
+
+@keyframes weather-spin-slow {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes weather-pulse-glow {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes weather-drift {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(6px);
+  }
+}
+
+@keyframes weather-drift-slow {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-5px);
+  }
+}
+
+@keyframes weather-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes weather-fog {
+  0%,
+  100% {
+    transform: translateX(-4px);
+    opacity: 0.35;
+  }
+  50% {
+    transform: translateX(5px);
+    opacity: 0.7;
+  }
+}
+
+@keyframes weather-drop {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.75;
+  }
+  100% {
+    transform: translateY(28px);
+    opacity: 0;
+  }
+}
+
+@keyframes weather-flake {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate(6px, 26px);
+    opacity: 0;
+  }
+}
+
+@keyframes weather-flash {
+  0%,
+  88%,
+  100% {
+    filter: brightness(1);
+    opacity: 0.85;
+  }
+  90% {
+    filter: brightness(1.8);
+    opacity: 1;
+  }
+  93% {
+    filter: brightness(1);
+    opacity: 0.85;
+  }
+  95% {
+    filter: brightness(1.55);
+    opacity: 1;
+  }
+}
+
+.weather-sun {
+  animation: weather-spin-slow 28s linear infinite;
+  transform-origin: center;
+}
+
+.weather-sun-glow {
+  animation: weather-pulse-glow 4.5s ease-in-out infinite;
+}
+
+.weather-drift {
+  animation: weather-drift 7s ease-in-out infinite;
+}
+
+.weather-drift-slow {
+  animation: weather-drift-slow 9s ease-in-out infinite;
+}
+
+.weather-breathe {
+  animation: weather-breathe 5s ease-in-out infinite;
+}
+
+.weather-fog-band {
+  animation: weather-fog 8s ease-in-out infinite;
+}
+
+.weather-fog-2 {
+  animation-delay: -2.4s;
+  animation-duration: 9.5s;
+}
+
+.weather-fog-3 {
+  animation-delay: -4.8s;
+  animation-duration: 7s;
+}
+
+.weather-drop {
+  position: absolute;
+  top: 2rem;
+  width: 1.5px;
+  height: 7px;
+  border-radius: 1px;
+  background: hsl(var(--ac) / 0.55);
+  animation: weather-drop 1.1s linear infinite;
+}
+
+.weather-drop-1 {
+  left: 28%;
+  animation-delay: 0s;
+}
+
+.weather-drop-2 {
+  left: 42%;
+  animation-delay: -0.25s;
+  animation-duration: 0.95s;
+}
+
+.weather-drop-3 {
+  left: 56%;
+  animation-delay: -0.55s;
+  height: 9px;
+}
+
+.weather-drop-4 {
+  left: 68%;
+  animation-delay: -0.8s;
+  animation-duration: 1.2s;
+}
+
+.weather-flake {
+  position: absolute;
+  top: 2rem;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: hsl(var(--ac) / 0.7);
+  animation: weather-flake 2.8s ease-in infinite;
+}
+
+.weather-flake-1 {
+  left: 30%;
+  animation-delay: 0s;
+}
+
+.weather-flake-2 {
+  left: 46%;
+  width: 2px;
+  height: 2px;
+  animation-delay: -0.7s;
+  animation-duration: 3.2s;
+}
+
+.weather-flake-3 {
+  left: 58%;
+  animation-delay: -1.4s;
+}
+
+.weather-flake-4 {
+  left: 70%;
+  width: 2.5px;
+  height: 2.5px;
+  animation-delay: -2s;
+  animation-duration: 3.6s;
+}
+
+.weather-bolt {
+  animation: weather-flash 5.5s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tabbie-enter,
+  .tabbie-module-enter,
+  .tabbie-tab-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .weather-sun,
+  .weather-sun-glow,
+  .weather-drift,
+  .weather-drift-slow,
+  .weather-breathe,
+  .weather-fog-band,
+  .weather-drop,
+  .weather-flake,
+  .weather-bolt {
+    animation: none !important;
+  }
+
+  .weather-drop,
+  .weather-flake {
+    opacity: 0.45;
+    transform: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-black/10 bg-white/55 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.035];
+  }
+  .glass-hover {
+    @apply transition-colors duration-150 hover:bg-white/70 dark:hover:bg-white/[0.055];
+  }
+}

@@ -1,33 +1,104 @@
-# newtab
+# Tabbie
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [v0](https://v0.app).
+<p align="center">
+  <img src="public/icon-128.png" alt="Tabbie" width="96" height="96" />
+</p>
 
-## Built with v0
+A calm, beautiful, **local-first new tab** — installed as a lightweight browser extension so it can open on every new tab and optionally read things already in your browser (like bookmarks).
 
-This repository is linked to a [v0](https://v0.app) project. You can continue developing by visiting the link below -- start new chats to make changes, and v0 will push commits directly to this repo. Every merge to `main` will automatically deploy.
+## Product decision
 
-[Continue working on v0 →](https://v0.app/chat/projects/prj_QV7Uy04jaiVJdvtoi0U0IBIqbtUm)
+**Tabbie is extension-first.** A normal website cannot replace Chrome’s new tab page or read bookmarks/history. The accessible path is:
 
-## Getting Started
+1. Install the extension once  
+2. New tabs open Tabbie automatically  
+3. Optional permissions (bookmarks today; history / top sites later) are requested only when you add that module  
 
-First, run the development server:
+You can still run the Vite app for development; modules that need Chrome APIs show a clear “install as new tab” empty state until you’re in the extension.
+
+## The local-first promise
+
+Tabbie makes **zero network requests by default**. No analytics, no telemetry, no external fonts, no CDNs. Shortcuts, settings, and module data live in `localStorage` under the `tabbie:` prefix. Bookmarks are read live from Chrome when you grant access — never uploaded.
+
+Exactly a few things can leave your device, and all are explicit choices you make:
+
+1. **Submitting the search box** navigates to your chosen search engine.
+2. **Optional GitHub / RSS modules** fetch from those services only after you configure them.
+3. **Favicons** use Chrome’s cache when installed as an extension; otherwise a small icon helper may load.
+4. **Update check** (Settings → Data) asks GitHub Releases for a newer build at most once per day.
+
+## Features
+
+- **Search & shortcuts** — engines with bangs, local suggestions, destination strip.
+- **Module dock** — Resume / Follow / Capture. Drag to reorder; ⋯ to resize or remove.
+  - **GitHub** — PRs, issues, Actions, notifications
+  - **Bookmarks** — Chrome bookmark bar, Other, Recent (optional permission)
+  - **RSS / Atom**, **Link group**, **Scratch**, **Countdown**
+- **Theming** — twelve curated themes + light/dark/system
+- **World clocks** — major cities next to local time
+- **Your data** — Export / Import / Reset in Settings
+- **Updates** — GitHub Releases zip + in-Settings update check
+
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
+npm install     # once
+npm run dev     # http://localhost:7100 (no Chrome APIs)
+npm run build   # syncs manifest version from package.json → dist/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`package.json` is the single version source. `prebuild` writes that version into `public/manifest.json`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Use as your new tab (Chrome / Edge)
 
-## Learn More
+1. `npm run build`
+2. `chrome://extensions` → Developer mode → **Load unpacked** → select `dist/`
+3. Open a new tab — Tabbie takes over
+4. Add the **Bookmarks** module → click **Allow bookmarks** when prompted
 
-To learn more, take a look at the following resources:
+### Firefox
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-- [v0 Documentation](https://v0.app/docs) - learn about v0 and how to use it.
+Load `dist/manifest.json` via `about:debugging` → This Firefox → Load Temporary Add-on. Temporary add-ons reset on quit unless signed.
+
+## Releasing & updating
+
+Unpacked extensions **do not** silently auto-update in Chrome. Tabbie’s update channel is **GitHub Releases**.
+
+### Cut a release
+
+1. Bump `version` in `package.json` (e.g. `0.2.1`)
+2. Commit the change
+3. Tag and push:
+   ```bash
+   git tag v0.2.1
+   git push origin v0.2.1
+   ```
+4. GitHub Actions builds, zips `dist/` as `tabbie.zip`, and attaches it to the release  
+   The tag (`v0.2.1`) **must** match `package.json` or the workflow fails.
+
+### Update an installed copy
+
+1. Download `tabbie.zip` from the [latest release](https://github.com/qarlus/tabbie/releases/latest)
+2. Extract over your loaded extension folder (or point Load unpacked at the new folder)
+3. On `chrome://extensions`, click **Reload** for Tabbie
+
+Settings → **Data** shows the installed version and a quiet “Update available” notice when a newer release exists (cached for 24 hours).
+
+Silent Chrome auto-update requires publishing to the **Chrome Web Store** later — the same release zip can feed that upload.
+
+## Keyboard shortcuts
+
+| Key | Action |
+| --- | --- |
+| `/` | Focus the search bar |
+| `↑` / `↓` | Move through search suggestions |
+| `Enter` | Submit search / open highlighted item |
+| `Esc` | Close suggestions or dialog |
+
+## Data export / import
+
+Settings → **Export** / **Import** / **Reset all**. Bookmarks themselves stay in Chrome; Tabbie only stores which folder view you last opened.
+
+## Tech
+
+Vite · React 19 · TypeScript · Tailwind CSS · shadcn/ui · next-themes · lucide-react · @dnd-kit. Manifest V3 extension, no runtime backend.
