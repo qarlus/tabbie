@@ -41,8 +41,9 @@ import {
   type PlacedModule,
 } from "@/lib/modules";
 import type { Settings } from "@/lib/types";
+import type { LayoutModeId } from "@/lib/scene";
 import { ModuleMenu } from "./ModuleMenu";
-import { TabbieMark } from "./TabbieMark";
+import { CapTabMark } from "./CapTabMark";
 
 const EMPTY_DATA: ModuleDataMap = {};
 
@@ -64,13 +65,61 @@ interface ModuleDockProps {
   layout: LayoutState;
   setLayout: (next: LayoutState | ((prev: LayoutState) => LayoutState)) => void;
   settings: Settings;
+  layoutMode?: LayoutModeId;
+}
+
+function cardGridClass(mode: LayoutModeId): string {
+  switch (mode) {
+    case "bento":
+      return "grid grid-cols-1 items-start gap-3 sm:grid-cols-2 lg:grid-cols-3";
+    case "magazine":
+      return "grid grid-cols-1 items-start gap-4 md:grid-cols-12";
+    case "islands":
+      return "grid grid-cols-1 items-start gap-5 sm:grid-cols-2 sm:gap-x-6 sm:gap-y-8";
+    case "stack":
+    default:
+      return "grid grid-cols-1 items-start gap-3 md:grid-cols-2";
+  }
+}
+
+function cardSpanClass(
+  mode: LayoutModeId,
+  span: "full" | "half",
+  compact: boolean,
+  index: number
+): string {
+  if (compact) return "w-full";
+  switch (mode) {
+    case "bento":
+      // Full = 2 cols on lg; half = 1. First full can lead the mosaic.
+      return span === "full" ? "sm:col-span-2 lg:col-span-2" : "sm:col-span-1";
+    case "magazine":
+      // Lead card spans wide; half cards share the remaining rhythm.
+      if (index === 0 || span === "full") return "md:col-span-12 lg:col-span-8";
+      return "md:col-span-6 lg:col-span-4";
+    case "islands":
+      return span === "full"
+        ? "sm:col-span-2"
+        : index % 2 === 1
+          ? "sm:col-span-1 sm:translate-y-4"
+          : "sm:col-span-1";
+    case "stack":
+    default:
+      return span === "full" ? "md:col-span-2" : "md:col-span-1";
+  }
 }
 
 /**
  * Draggable module dock under the fixed search/shortcuts band.
  * Compact modules (e.g. Focus) render in a strip above card modules.
+ * Layout mode only changes visual arrangement — module order/span persist.
  */
-export function ModuleDock({ layout: layoutRaw, setLayout, settings }: ModuleDockProps) {
+export function ModuleDock({
+  layout: layoutRaw,
+  setLayout,
+  settings,
+  layoutMode = "stack",
+}: ModuleDockProps) {
   const [dataRaw, setDataRaw] = useStoredState<ModuleDataMap>("module-data", EMPTY_DATA);
   const layout = useMemo(() => normalizeLayout(layoutRaw), [layoutRaw]);
   const [addOpen, setAddOpen] = useState(false);
@@ -173,13 +222,15 @@ export function ModuleDock({ layout: layoutRaw, setLayout, settings }: ModuleDoc
   const compactMods = layout.modules.filter((m) => getModule(m.type)?.size === "compact");
   const cardMods = layout.modules.filter((m) => getModule(m.type)?.size !== "compact");
 
-  function renderModule(mod: PlacedModule) {
+  function renderModule(mod: PlacedModule, index: number) {
     const def = getModule(mod.type);
     return (
       <SortableModule
         key={mod.id}
         module={mod}
         def={def}
+        layoutMode={layoutMode}
+        cardIndex={index}
         data={
           dataRaw[mod.id] ?? (def?.defaultData ? def.defaultData() : undefined)
         }
@@ -196,10 +247,10 @@ export function ModuleDock({ layout: layoutRaw, setLayout, settings }: ModuleDoc
         <button
           type="button"
           onClick={() => setAddOpen(true)}
-          className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-black/12 bg-white/30 px-6 py-10 text-center transition-colors hover:border-black/20 hover:bg-white/45 dark:border-white/12 dark:bg-white/[0.02] dark:hover:border-white/20 dark:hover:bg-white/[0.04]"
+          className="flex w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[rgba(92,64,48,0.18)] bg-[rgba(245,240,232,0.35)] px-6 py-10 text-center transition-colors hover:border-[rgba(92,64,48,0.28)] hover:bg-[rgba(245,240,232,0.55)] dark:border-[rgba(255,236,214,0.12)] dark:bg-[rgba(24,18,14,0.28)] dark:hover:border-[rgba(255,236,214,0.2)] dark:hover:bg-[rgba(24,18,14,0.45)]"
         >
           <span className="mb-1">
-            <TabbieMark className="h-10 w-10 rounded-[10px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
+            <CapTabMark className="h-10 w-10 rounded-[10px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
           </span>
           <span className="text-sm font-medium text-foreground/85">Add your first module</span>
           <span className="max-w-xs text-xs leading-relaxed text-muted-foreground">
@@ -211,11 +262,13 @@ export function ModuleDock({ layout: layoutRaw, setLayout, settings }: ModuleDoc
           <SortableContext items={layout.modules.map((m) => m.id)} strategy={rectSortingStrategy}>
             <div className="flex flex-col gap-3">
               {compactMods.length > 0 ? (
-                <div className="flex flex-col gap-2">{compactMods.map(renderModule)}</div>
+                <div className="flex flex-col gap-2">
+                  {compactMods.map((m, i) => renderModule(m, i))}
+                </div>
               ) : null}
               {cardMods.length > 0 ? (
-                <div className="grid grid-cols-1 items-start gap-3 md:grid-cols-2">
-                  {cardMods.map(renderModule)}
+                <div className={cardGridClass(layoutMode)}>
+                  {cardMods.map((m, i) => renderModule(m, i))}
                 </div>
               ) : null}
             </div>
@@ -237,7 +290,7 @@ export function ModuleDock({ layout: layoutRaw, setLayout, settings }: ModuleDoc
         <DialogContent className="flex max-h-[min(90dvh,44rem)] flex-col gap-4 overflow-hidden sm:max-w-lg">
           <DialogHeader className="shrink-0">
             <div className="flex items-start gap-2.5">
-              <TabbieMark className="mt-0.5 h-7 w-7 shrink-0 rounded-[7px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
+              <CapTabMark className="mt-0.5 h-7 w-7 shrink-0 rounded-[7px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
               <div className="min-w-0">
                 <DialogTitle>Add a module</DialogTitle>
                 <DialogDescription>
@@ -306,6 +359,8 @@ function SortableModule({
   module,
   def,
   data,
+  layoutMode,
+  cardIndex,
   onDataChange,
   onRemove,
   onToggleSpan,
@@ -313,6 +368,8 @@ function SortableModule({
   module: PlacedModule;
   def: ModuleDefinition | undefined;
   data: unknown;
+  layoutMode: LayoutModeId;
+  cardIndex: number;
   onDataChange: (next: unknown) => void;
   onRemove: () => void;
   onToggleSpan: () => void;
@@ -347,19 +404,16 @@ function SortableModule({
       allowResize={!compact}
     />
   );
-  const spanClass = compact
-    ? "w-full"
-    : module.span === "full"
-      ? "md:col-span-2"
-      : "md:col-span-1";
+  const spanClass = cardSpanClass(layoutMode, module.span, !!compact, cardIndex);
 
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "tabbie-module-enter",
+        "captab-module-enter",
         !compact && "min-h-[11rem]",
+        layoutMode === "islands" && !compact && "transition-transform duration-300",
         spanClass,
         isDragging && "z-20 opacity-80"
       )}
@@ -373,7 +427,7 @@ function SortableModule({
           menu,
         })
       ) : (
-        <div className="flex items-center justify-center rounded-xl border border-black/8 bg-white/55 p-4 text-sm text-muted-foreground dark:border-white/10 dark:bg-white/[0.035]">
+        <div className="flex items-center justify-center rounded-xl border border-[rgba(92,64,48,0.12)] bg-[rgba(245,240,232,0.62)] p-4 text-sm text-muted-foreground dark:border-[rgba(255,236,214,0.1)] dark:bg-[rgba(24,18,14,0.48)]">
           Unknown module: {module.type}
         </div>
       )}

@@ -81,24 +81,31 @@ export default function App() {
 
   return (
     <div className="relative flex min-h-full flex-col">
-      <Background surface={settings.surface} />
+      <Background surface={settings.surface} wallpaper={settings.wallpaper} />
       <TopBar
         settings={settings}
         onOpenSettings={() => setSettingsOpen(true)}
-        className="tabbie-enter"
+        className="captab-enter"
       />
 
       <main
         className={cn(
           "mx-auto flex w-full flex-1 flex-col px-5 pb-10 pt-[4.25rem]",
           hasModules
-            ? "max-w-6xl justify-start gap-4 sm:gap-5 sm:pb-12"
+            ? cn(
+                "justify-start gap-4 sm:gap-5 sm:pb-12",
+                settings.layoutMode === "magazine" || settings.layoutMode === "bento"
+                  ? "max-w-7xl"
+                  : settings.layoutMode === "islands"
+                    ? "max-w-6xl"
+                    : "max-w-6xl"
+              )
             : "max-w-3xl items-center justify-center gap-5 pb-16"
         )}
       >
         <div
           className={cn(
-            "tabbie-enter flex w-full flex-col gap-3.5",
+            "captab-enter flex w-full flex-col gap-3.5",
             hasModules ? "items-stretch" : "items-center"
           )}
         >
@@ -111,13 +118,18 @@ export default function App() {
               inputRef={searchRef}
             />
           </div>
-          <div className="tabbie-enter tabbie-enter-delay-1 w-full">
+          <div className="captab-enter captab-enter-delay-1 w-full">
             <ShortcutGrid shortcuts={shortcuts} setShortcuts={setShortcuts} editor={editor} setEditor={setEditor} />
           </div>
         </div>
 
-        <div className="tabbie-enter tabbie-enter-delay-2 w-full">
-          <ModuleDock layout={layout} setLayout={setLayout} settings={settings} />
+        <div className="captab-enter captab-enter-delay-2 w-full">
+          <ModuleDock
+            layout={layout}
+            setLayout={setLayout}
+            settings={settings}
+            layoutMode={settings.layoutMode}
+          />
         </div>
       </main>
 

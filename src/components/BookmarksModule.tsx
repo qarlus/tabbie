@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 import { ModuleEmpty } from "./ModuleEmpty";
 import { Panel } from "./Panel";
 import { SiteIcon } from "./SiteIcon";
-import { TabbieMark } from "./TabbieMark";
+import { CapTabMark } from "./CapTabMark";
 
 export type BookmarksView = "bar" | "other" | "recent" | "folder";
 
@@ -216,10 +216,10 @@ export function BookmarksModule({ data, onChange, leading, menu, className }: Bo
       {!extension ? (
         <ModuleEmpty
           visual={
-            <TabbieMark className="h-10 w-10 rounded-[10px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
+            <CapTabMark className="h-10 w-10 rounded-[10px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
           }
-          title="Install Tabbie as your new tab"
-          hint="Bookmarks come straight from Chrome. Build, then Load unpacked from dist/ — new tabs open Tabbie, and this module can read your bookmark bar."
+          title="Install CapTab as your new tab"
+          hint="Bookmarks come straight from Chrome. Build, then Load unpacked from dist/ — new tabs open CapTab, and this module can read your bookmark bar."
         />
       ) : allowed === null ? (
         <p className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -229,7 +229,7 @@ export function BookmarksModule({ data, onChange, leading, menu, className }: Bo
         <ModuleEmpty
           icon={Shield}
           title="Allow bookmark access"
-          hint="Tabbie only reads bookmarks when you say so. Nothing is uploaded — it stays in this browser."
+          hint="CapTab only reads bookmarks when you say so. Nothing is uploaded — it stays in this browser."
           action={
             <Button type="button" size="sm" onClick={() => void grantAccess()} disabled={requesting}>
               {requesting ? (

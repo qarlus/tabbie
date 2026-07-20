@@ -1,7 +1,14 @@
 import { isWorldClockId } from "./clocks";
 import { isFontId, isSurfaceId, type FontId, type SurfaceId } from "./look";
+import {
+  isLayoutModeId,
+  isWallpaperId,
+  type LayoutModeId,
+  type WallpaperId,
+} from "./scene";
 
 export type { FontId, SurfaceId } from "./look";
+export type { LayoutModeId, WallpaperId } from "./scene";
 
 export type EngineId = "duckduckgo" | "google" | "bing" | "brave" | "startpage";
 
@@ -21,6 +28,7 @@ export type ThemeId =
   | "midnight";
 
 export const THEME_IDS: ThemeId[] = [
+  "honey",
   "slate",
   "ink",
   "ocean",
@@ -31,7 +39,6 @@ export const THEME_IDS: ThemeId[] = [
   "coral",
   "olive",
   "berry",
-  "honey",
   "midnight",
 ];
 
@@ -42,6 +49,10 @@ export interface Settings {
   theme: ThemeId;
   font: FontId;
   surface: SurfaceId;
+  /** Full-bleed scenic image under the wash. */
+  wallpaper: WallpaperId;
+  /** How module cards arrange — order/span stay in layout storage. */
+  layoutMode: LayoutModeId;
   engine: EngineId;
   clock24: boolean;
   /** Selected world-clock city ids from the curated catalog. */
@@ -60,9 +71,11 @@ export interface Settings {
 
 export const DEFAULT_SETTINGS: Settings = {
   name: "",
-  theme: "slate",
-  font: "sans",
+  theme: "honey",
+  font: "rounded",
   surface: "grain",
+  wallpaper: "riverside",
+  layoutMode: "bento",
   engine: "duckduckgo",
   clock24: false,
   worldClocks: [],
@@ -74,8 +87,8 @@ function themeFromLegacy(accent?: string, background?: string): ThemeId {
   if (background === "forest" || accent === "green" || accent === "teal") return "sage";
   if (background === "mist" || accent === "blue") return "ocean";
   if (background === "paper" || accent === "pink") return "rose";
-  if (accent === "violet" || background === "dusk") return "slate";
-  return "slate";
+  if (accent === "violet" || background === "dusk") return "honey";
+  return "honey";
 }
 
 function isThemeId(value: string | undefined): value is ThemeId {
@@ -110,6 +123,8 @@ export function normalizeSettings(raw: Partial<Settings> | null | undefined): Se
       : raw?.surface === "dots"
         ? "stipple"
         : DEFAULT_SETTINGS.surface,
+    wallpaper: isWallpaperId(raw?.wallpaper) ? raw.wallpaper : DEFAULT_SETTINGS.wallpaper,
+    layoutMode: isLayoutModeId(raw?.layoutMode) ? raw.layoutMode : DEFAULT_SETTINGS.layoutMode,
     engine: raw?.engine ?? DEFAULT_SETTINGS.engine,
     clock24: typeof raw?.clock24 === "boolean" ? raw.clock24 : DEFAULT_SETTINGS.clock24,
     worldClocks: normalizeWorldClocks(raw?.worldClocks),

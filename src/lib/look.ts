@@ -47,8 +47,8 @@ export const FONTS: FontDefinition[] = [
   {
     id: "rounded",
     name: "Rounded",
-    hint: "Softer UI",
-    stack: '"Segoe UI", "Trebuchet MS", "Lucida Grande", "Helvetica Neue", sans-serif',
+    hint: "Calm Capbar UI",
+    stack: '"Segoe UI Variable Text", "Segoe UI", system-ui, "Trebuchet MS", "Lucida Grande", sans-serif',
   },
   {
     id: "editorial",

@@ -9,7 +9,7 @@ export const STARTER_MODULE_TYPES = ["focus", "checklist", "weather"] as const;
 
 export function registerModule<TData>(def: ModuleDefinition<TData>): void {
   if (registry.has(def.type)) {
-    console.warn(`[tabbie] module "${def.type}" was registered twice; keeping the first.`);
+    console.warn(`[captab] module "${def.type}" was registered twice; keeping the first.`);
     return;
   }
   registry.set(def.type, def as ModuleDefinition);

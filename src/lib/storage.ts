@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-export const PREFIX = "tabbie:";
-const CHANGE_EVENT = "tabbie:storage-change";
+export const PREFIX = "captab:";
+/** Pre-rebrand prefix — migrated once into PREFIX on load. */
+export const LEGACY_PREFIX = "tabbie:";
+const CHANGE_EVENT = "captab:storage-change";
 
-/** All keys Tabbie may persist, relative to the prefix. */
+/** All keys CapTab may persist, relative to the prefix. */
 export const KNOWN_KEYS = [
   "settings",
   "shortcuts",
@@ -21,6 +23,37 @@ export const KNOWN_KEYS = [
   "update-check",
   "theme", // written by next-themes (storageKey)
 ] as const;
+
+/**
+ * One-time copy of `tabbie:*` → `captab:*` so existing installs keep settings.
+ * Does not overwrite keys already present under the new prefix.
+ */
+export function migrateLegacyStorage(): void {
+  try {
+    const toCopy: { from: string; to: string }[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const full = localStorage.key(i);
+      if (!full || !full.startsWith(LEGACY_PREFIX)) continue;
+      const relative = full.slice(LEGACY_PREFIX.length);
+      if (!relative) continue;
+      const next = PREFIX + relative;
+      if (localStorage.getItem(next) == null) {
+        toCopy.push({ from: full, to: next });
+      }
+    }
+    for (const { from, to } of toCopy) {
+      const value = localStorage.getItem(from);
+      if (value != null) localStorage.setItem(to, value);
+    }
+    // Drop legacy keys after a successful pass so we don't dual-write forever.
+    for (let i = localStorage.length - 1; i >= 0; i--) {
+      const full = localStorage.key(i);
+      if (full && full.startsWith(LEGACY_PREFIX)) localStorage.removeItem(full);
+    }
+  } catch {
+    // private mode / blocked storage — ignore
+  }
+}
 
 export function readKey<T>(key: string, fallback: T): T {
   try {
@@ -42,7 +75,7 @@ export function writeKey<T>(key: string, value: T): void {
 }
 
 /**
- * useState backed by localStorage under the `tabbie:` prefix.
+ * useState backed by localStorage under the `captab:` prefix.
  * Multiple hook instances using the same key stay in sync via a window event.
  *
  * Writes skip the emitting instance's echo listener so functional updaters
@@ -88,13 +121,15 @@ export function useStoredState<T>(key: string, fallback: T) {
 /* ---------- export / import / reset ---------- */
 
 interface ExportEnvelope {
-  app: "tabbie";
+  app: "captab" | "tabbie";
   version: 1;
   exportedAt: string;
   data: Record<string, string>;
 }
 
-/** Serialize every `tabbie:*` localStorage entry (raw strings) to JSON. */
+const BACKUP_APPS = new Set(["captab", "tabbie"]);
+
+/** Serialize every `captab:*` localStorage entry (raw strings) to JSON. */
 export function exportAll(): string {
   const data: Record<string, string> = {};
   for (let i = 0; i < localStorage.length; i++) {
@@ -104,7 +139,7 @@ export function exportAll(): string {
     }
   }
   const envelope: ExportEnvelope = {
-    app: "tabbie",
+    app: "captab",
     version: 1,
     exportedAt: new Date().toISOString(),
     data,
@@ -114,7 +149,7 @@ export function exportAll(): string {
 
 export type ImportResult = { ok: true; count: number } | { ok: false; error: string };
 
-/** Validate and apply an exported backup. Replaces all existing tabbie state. */
+/** Validate and apply an exported backup. Replaces all existing CapTab state. */
 export function importAll(json: string): ImportResult {
   let parsed: unknown;
   try {
@@ -122,14 +157,16 @@ export function importAll(json: string): ImportResult {
   } catch {
     return { ok: false, error: "That file is not valid JSON." };
   }
+  const record = parsed as Record<string, unknown>;
   if (
     typeof parsed !== "object" ||
     parsed === null ||
-    (parsed as Record<string, unknown>).app !== "tabbie" ||
-    typeof (parsed as Record<string, unknown>).data !== "object" ||
-    (parsed as Record<string, unknown>).data === null
+    typeof record.app !== "string" ||
+    !BACKUP_APPS.has(record.app) ||
+    typeof record.data !== "object" ||
+    record.data === null
   ) {
-    return { ok: false, error: "That file is not a Tabbie backup." };
+    return { ok: false, error: "That file is not a CapTab backup." };
   }
   const data = (parsed as ExportEnvelope).data;
   const entries = Object.entries(data);
@@ -144,12 +181,12 @@ export function importAll(json: string): ImportResult {
   return { ok: true, count: entries.length };
 }
 
-/** Remove every `tabbie:*` key. */
+/** Remove every `captab:*` key (and any leftover `tabbie:*`). */
 export function resetAll(): void {
   const toRemove: string[] = [];
   for (let i = 0; i < localStorage.length; i++) {
     const full = localStorage.key(i);
-    if (full && full.startsWith(PREFIX)) toRemove.push(full);
+    if (full && (full.startsWith(PREFIX) || full.startsWith(LEGACY_PREFIX))) toRemove.push(full);
   }
   toRemove.forEach((k) => localStorage.removeItem(k));
 }
@@ -160,7 +197,7 @@ export function downloadBackup(): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `tabbie-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `captab-backup-${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
 }

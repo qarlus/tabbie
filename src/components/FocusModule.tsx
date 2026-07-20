@@ -22,7 +22,7 @@ export function FocusModule({ data, onChange, leading, menu, className }: FocusM
   return (
     <section
       className={cn(
-        "flex items-center gap-2 rounded-xl border border-black/8 bg-white/55 px-2 py-1.5 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.035]",
+        "flex items-center gap-2 rounded-xl border border-[rgba(92,64,48,0.12)] bg-[rgba(245,240,232,0.62)] px-2 py-1.5 backdrop-blur-md dark:border-[rgba(255,236,214,0.1)] dark:bg-[rgba(24,18,14,0.48)]",
         className
       )}
     >

@@ -1,6 +1,6 @@
 /**
  * Chrome extension capability layer.
- * Tabbie is extension-first (new tab). Browser APIs are optional and gated.
+ * CapTab is extension-first (new tab). Browser APIs are optional and gated.
  */
 
 export type ChromePermission = "bookmarks" | "history" | "topSites";

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface ModuleEmptyProps {
   icon?: LucideIcon;
-  /** Custom visual (e.g. Tabbie mark) — replaces the default icon tile. */
+  /** Custom visual (e.g. CapTab mark) — replaces the default icon tile. */
   visual?: ReactNode;
   title: string;
   hint: string;

@@ -116,7 +116,7 @@ export function SearchBar({ settings, shortcuts, recents, onSearch, inputRef }: 
     <div ref={containerRef} className="relative w-full">
       <div
         className={cn(
-          "flex h-12 items-center gap-3 rounded-lg border border-black/8 bg-white/70 px-4 backdrop-blur-md transition-colors focus-within:border-black/15 dark:border-white/10 dark:bg-white/[0.04] dark:focus-within:border-white/20",
+          "flex h-12 items-center gap-3 rounded-lg border border-[rgba(92,64,48,0.12)] bg-[rgba(245,240,232,0.72)] px-4 backdrop-blur-md transition-colors focus-within:border-[rgba(92,64,48,0.22)] dark:border-[rgba(255,236,214,0.1)] dark:bg-[rgba(24,18,14,0.52)] dark:focus-within:border-[rgba(255,236,214,0.2)]",
           open && suggestions.length > 0 && "rounded-b-none border-b-transparent"
         )}
       >
@@ -150,7 +150,7 @@ export function SearchBar({ settings, shortcuts, recents, onSearch, inputRef }: 
       {open && suggestions.length > 0 && (
         <div
           role="listbox"
-          className="absolute inset-x-0 top-full z-40 -mt-px animate-in fade-in-0 slide-in-from-top-1 overflow-hidden rounded-b-lg border border-t-0 border-black/8 bg-white/90 py-1 shadow-lg shadow-black/5 duration-150 backdrop-blur-md dark:border-white/10 dark:bg-[#12121a]/95 dark:shadow-black/40"
+          className="absolute inset-x-0 top-full z-40 -mt-px animate-in fade-in-0 slide-in-from-top-1 overflow-hidden rounded-b-lg border border-t-0 border-[rgba(92,64,48,0.12)] bg-[rgba(245,240,232,0.92)] py-1 shadow-lg shadow-black/5 duration-150 backdrop-blur-md dark:border-[rgba(255,236,214,0.1)] dark:bg-[rgba(18,13,10,0.92)] dark:shadow-black/40"
         >
           {suggestions.map((s, i) => (
             <button

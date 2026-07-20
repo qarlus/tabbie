@@ -32,10 +32,10 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    /* defaults = slate (pre-effect paint) */
-    --ac: 215 18% 40%;
-    --page-bg: 220 14% 96%;
-    --wash: linear-gradient(165deg, hsl(220 16% 94%) 0%, hsl(215 12% 97%) 50%, hsl(210 10% 95%) 100%);
+    /* defaults = honey / CapTab (pre-effect paint) */
+    --ac: 30 48% 42%;
+    --page-bg: 36 28% 95%;
+    --wash: linear-gradient(165deg, hsl(36 32% 92%) 0%, hsl(40 22% 96%) 50%, hsl(28 18% 94%) 100%);
   }
 
   .dark {
@@ -66,10 +66,10 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    /* defaults = slate dark */
-    --ac: 210 20% 64%;
-    --page-bg: 222 12% 7%;
-    --wash: linear-gradient(165deg, hsl(222 14% 9%) 0%, hsl(220 10% 6%) 50%, hsl(215 12% 8%) 100%);
+    /* defaults = honey dark (warm Capbar charcoal) */
+    --ac: 30 52% 68%;
+    --page-bg: 24 22% 8%;
+    --wash: linear-gradient(165deg, hsl(24 24% 10%) 0%, hsl(22 18% 6%) 50%, hsl(28 16% 8%) 100%);
   }
 }
 
@@ -196,16 +196,16 @@
     --wash: linear-gradient(165deg, hsl(320 14% 9%) 0%, hsl(300 8% 5%) 50%, hsl(330 10% 7%) 100%);
   }
 
-  /* Honey — golden yellow */
+  /* Honey — Capbar caramel on warm paper / charcoal */
   html[data-theme="honey"] {
-    --ac: 42 62% 38%;
-    --page-bg: 42 18% 95%;
-    --wash: linear-gradient(165deg, hsl(42 22% 92%) 0%, hsl(48 14% 96%) 50%, hsl(36 16% 94%) 100%);
+    --ac: 30 48% 42%;
+    --page-bg: 36 28% 95%;
+    --wash: linear-gradient(165deg, hsl(36 32% 92%) 0%, hsl(40 22% 96%) 50%, hsl(28 18% 94%) 100%);
   }
   html.dark[data-theme="honey"] {
-    --ac: 42 70% 58%;
-    --page-bg: 36 14% 6%;
-    --wash: linear-gradient(165deg, hsl(36 16% 8%) 0%, hsl(42 10% 5%) 50%, hsl(30 12% 7%) 100%);
+    --ac: 30 52% 68%;
+    --page-bg: 24 22% 8%;
+    --wash: linear-gradient(165deg, hsl(24 24% 10%) 0%, hsl(22 18% 6%) 50%, hsl(28 16% 8%) 100%);
   }
 
   /* Midnight — deep indigo */
@@ -235,7 +235,7 @@
   body {
     @apply text-foreground antialiased;
     background-color: hsl(var(--page-bg));
-    font-family: var(--tabbie-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
+    font-family: var(--captab-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif);
     transition: background-color 300ms ease;
   }
   .font-clock {
@@ -253,25 +253,25 @@
 
 /* Font stacks (system faces only — no CDN) */
 html[data-font="sans"] {
-  --tabbie-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --captab-font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 html[data-font="serif"] {
-  --tabbie-font: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman",
+  --captab-font: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman",
     serif;
 }
 html[data-font="mono"] {
-  --tabbie-font: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --captab-font: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
 }
 html[data-font="rounded"] {
-  --tabbie-font: "Segoe UI", "Trebuchet MS", "Lucida Grande", "Helvetica Neue", sans-serif;
+  --captab-font: "Segoe UI Variable Text", "Segoe UI", system-ui, "Trebuchet MS", "Lucida Grande", sans-serif;
 }
 html[data-font="editorial"] {
-  --tabbie-font: Charter, "Bitstream Charter", "Sitka Text", Georgia, "Times New Roman", serif;
+  --captab-font: Charter, "Bitstream Charter", "Sitka Text", Georgia, "Times New Roman", serif;
 }
 
 /* ---------- Fixed background layer ---------- */
 
-.tabbie-wash {
+.captab-wash {
   position: absolute;
   inset: 0;
   background: var(--wash);
@@ -279,8 +279,45 @@ html[data-font="editorial"] {
   pointer-events: none;
 }
 
+/* When a photo wallpaper is on, mute the wash so scenery stays visible */
+.captab-wash-over-photo {
+  opacity: 0.42;
+}
+
+html.dark .captab-wash-over-photo {
+  opacity: 0.55;
+}
+
+.captab-wallpaper {
+  transform: scale(1.02);
+  filter: saturate(1.05);
+}
+
+.captab-wallpaper-veil {
+  background:
+    linear-gradient(
+      180deg,
+      hsl(var(--page-bg) / 0.55) 0%,
+      hsl(var(--page-bg) / 0.28) 38%,
+      hsl(var(--page-bg) / 0.45) 100%
+    ),
+    radial-gradient(ellipse 90% 70% at 50% 20%, transparent 30%, hsl(var(--page-bg) / 0.35) 100%);
+  transition: background 300ms ease;
+}
+
+html.dark .captab-wallpaper-veil {
+  background:
+    linear-gradient(
+      180deg,
+      hsl(var(--page-bg) / 0.72) 0%,
+      hsl(var(--page-bg) / 0.4) 40%,
+      hsl(var(--page-bg) / 0.65) 100%
+    ),
+    radial-gradient(ellipse 90% 70% at 50% 20%, transparent 25%, hsl(24 22% 6% / 0.45) 100%);
+}
+
 /* Soft accent bloom — ties surface texture to the active theme */
-.tabbie-accent-glow {
+.captab-accent-glow {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -291,13 +328,13 @@ html[data-font="editorial"] {
   transition: opacity 300ms ease;
 }
 
-html.dark .tabbie-accent-glow {
+html.dark .captab-accent-glow {
   background:
     radial-gradient(ellipse 80% 55% at 18% 12%, hsl(var(--ac) / 0.2), transparent 60%),
     radial-gradient(ellipse 70% 50% at 88% 78%, hsl(var(--ac) / 0.14), transparent 55%);
 }
 
-.tabbie-surface {
+.captab-surface {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -307,67 +344,67 @@ html.dark .tabbie-accent-glow {
 
 /* --- Unique materials (tile size set inline from look.ts) --- */
 
-.tabbie-surface-grain {
+.captab-surface-grain {
   opacity: 0.28;
   mix-blend-mode: soft-light;
 }
 
-html:not(.dark) .tabbie-surface-grain {
+html:not(.dark) .captab-surface-grain {
   opacity: 0.34;
   mix-blend-mode: multiply;
 }
 
 /* Bayer 8×8 at native pixels — was wrongly scaled to hundreds of px before */
-.tabbie-surface-dither {
+.captab-surface-dither {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   opacity: 0.11;
   mix-blend-mode: overlay;
 }
 
-html:not(.dark) .tabbie-surface-dither {
+html:not(.dark) .captab-surface-dither {
   opacity: 0.09;
   mix-blend-mode: multiply;
 }
 
-html.dark .tabbie-surface-dither {
+html.dark .captab-surface-dither {
   opacity: 0.14;
   mix-blend-mode: soft-light;
 }
 
-.tabbie-surface-stipple {
+.captab-surface-stipple {
   opacity: 0.22;
   mix-blend-mode: multiply;
 }
 
-html.dark .tabbie-surface-stipple {
+html.dark .captab-surface-stipple {
   opacity: 0.28;
   mix-blend-mode: soft-light;
 }
 
-.tabbie-surface-paper {
+.captab-surface-paper {
   opacity: 0.45;
   mix-blend-mode: soft-light;
 }
 
-html:not(.dark) .tabbie-surface-paper {
+html:not(.dark) .captab-surface-paper {
   opacity: 0.38;
   mix-blend-mode: multiply;
 }
 
-.tabbie-surface-hatch {
+.captab-surface-hatch {
   opacity: 0.16;
   mix-blend-mode: multiply;
 }
 
-html.dark .tabbie-surface-hatch {
+html.dark .captab-surface-hatch {
   opacity: 0.22;
   mix-blend-mode: soft-light;
 }
 
 /* ---------- Motion preferences & micro-interactions ---------- */
 
-@keyframes tabbie-enter {
+@keyframes captab-enter {
   from {
     opacity: 0;
     transform: translateY(8px);
@@ -378,7 +415,7 @@ html.dark .tabbie-surface-hatch {
   }
 }
 
-@keyframes tabbie-fade {
+@keyframes captab-fade {
   from {
     opacity: 0;
   }
@@ -387,28 +424,28 @@ html.dark .tabbie-surface-hatch {
   }
 }
 
-.tabbie-enter {
-  animation: tabbie-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
+.captab-enter {
+  animation: captab-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.tabbie-enter-delay-1 {
+.captab-enter-delay-1 {
   animation-delay: 50ms;
 }
 
-.tabbie-enter-delay-2 {
+.captab-enter-delay-2 {
   animation-delay: 110ms;
 }
 
-.tabbie-enter-delay-3 {
+.captab-enter-delay-3 {
   animation-delay: 170ms;
 }
 
-.tabbie-module-enter {
-  animation: tabbie-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+.captab-module-enter {
+  animation: captab-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.tabbie-tab-enter {
-  animation: tabbie-fade 0.2s ease-out both;
+.captab-tab-enter {
+  animation: captab-fade 0.2s ease-out both;
 }
 
 /* ---------- Weather condition motion ---------- */
@@ -631,9 +668,9 @@ html.dark .tabbie-surface-hatch {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tabbie-enter,
-  .tabbie-module-enter,
-  .tabbie-tab-enter {
+  .captab-enter,
+  .captab-module-enter,
+  .captab-tab-enter {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
@@ -668,9 +705,9 @@ html.dark .tabbie-surface-hatch {
 
 @layer utilities {
   .glass {
-    @apply border border-black/10 bg-white/55 backdrop-blur-md dark:border-white/10 dark:bg-white/[0.035];
+    @apply border border-[rgba(92,64,48,0.12)] bg-[rgba(245,240,232,0.62)] backdrop-blur-md dark:border-[rgba(255,236,214,0.1)] dark:bg-[rgba(24,18,14,0.48)];
   }
   .glass-hover {
-    @apply transition-colors duration-150 hover:bg-white/70 dark:hover:bg-white/[0.055];
+    @apply transition-colors duration-150 hover:bg-[rgba(245,240,232,0.78)] dark:hover:bg-[rgba(24,18,14,0.62)];
   }
 }

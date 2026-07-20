@@ -1,24 +1,26 @@
-# Tabbie
+# CapTab
 
 <p align="center">
-  <img src="public/icon-128.png" alt="Tabbie" width="96" height="96" />
+  <img src="public/icon-128.png" alt="CapTab" width="96" height="96" />
 </p>
 
-A calm, beautiful, **local-first new tab** — installed as a lightweight browser extension so it can open on every new tab and optionally read things already in your browser (like bookmarks).
+A calm, **local-first new tab** — Capbar’s tab sibling. Same warmth and creature DNA; different job. Capbar watches AI usage caps in the tray; CapTab is the quiet place every new tab opens.
+
+Installed as a lightweight browser extension so it can open on every new tab and optionally read things already in your browser (like bookmarks).
 
 ## Product decision
 
-**Tabbie is extension-first.** A normal website cannot replace Chrome’s new tab page or read bookmarks/history. The accessible path is:
+**CapTab is extension-first.** A normal website cannot replace Chrome’s new tab page or read bookmarks/history. The accessible path is:
 
 1. Install the extension once  
-2. New tabs open Tabbie automatically  
+2. New tabs open CapTab automatically  
 3. Optional permissions (bookmarks today; history / top sites later) are requested only when you add that module  
 
 You can still run the Vite app for development; modules that need Chrome APIs show a clear “install as new tab” empty state until you’re in the extension.
 
 ## The local-first promise
 
-Tabbie makes **zero network requests by default**. No analytics, no telemetry, no external fonts, no CDNs. Shortcuts, settings, and module data live in `localStorage` under the `tabbie:` prefix. Bookmarks are read live from Chrome when you grant access — never uploaded.
+CapTab makes **zero network requests by default**. No analytics, no telemetry, no external fonts, no CDNs. Shortcuts, settings, and module data live in `localStorage` under the `captab:` prefix (legacy `tabbie:` keys are migrated once on load). Bookmarks are read live from Chrome when you grant access — never uploaded.
 
 Exactly a few things can leave your device, and all are explicit choices you make:
 
@@ -34,7 +36,7 @@ Exactly a few things can leave your device, and all are explicit choices you mak
   - **GitHub** — PRs, issues, Actions, notifications
   - **Bookmarks** — Chrome bookmark bar, Other, Recent (optional permission)
   - **RSS / Atom**, **Link group**, **Scratch**, **Countdown**
-- **Theming** — twelve curated themes + light/dark/system
+- **Look** — twelve themes, handmade wallpapers (Impasto / Stipple / Fiber), layout modes (Stack / Bento / Magazine / Islands), surfaces, fonts, light/dark
 - **World clocks** — major cities next to local time
 - **Your data** — Export / Import / Reset in Settings
 - **Updates** — GitHub Releases zip + in-Settings update check
@@ -53,7 +55,7 @@ npm run build   # syncs manifest version from package.json → dist/
 
 1. `npm run build`
 2. `chrome://extensions` → Developer mode → **Load unpacked** → select `dist/`
-3. Open a new tab — Tabbie takes over
+3. Open a new tab — CapTab takes over
 4. Add the **Bookmarks** module → click **Allow bookmarks** when prompted
 
 ### Firefox
@@ -62,7 +64,7 @@ Load `dist/manifest.json` via `about:debugging` → This Firefox → Load Tempor
 
 ## Releasing & updating
 
-Unpacked extensions **do not** silently auto-update in Chrome. Tabbie’s update channel is **GitHub Releases**.
+Unpacked extensions **do not** silently auto-update in Chrome. CapTab’s update channel is **GitHub Releases**.
 
 ### Cut a release
 
@@ -73,14 +75,14 @@ Unpacked extensions **do not** silently auto-update in Chrome. Tabbie’s update
    git tag v0.2.1
    git push origin v0.2.1
    ```
-4. GitHub Actions builds, zips `dist/` as `tabbie.zip`, and attaches it to the release  
+4. GitHub Actions builds, zips `dist/` as `captab.zip`, and attaches it to the release  
    The tag (`v0.2.1`) **must** match `package.json` or the workflow fails.
 
 ### Update an installed copy
 
-1. Download `tabbie.zip` from the [latest release](https://github.com/qarlus/tabbie/releases/latest)
+1. Download `captab.zip` from the [latest release](https://github.com/qarlus/tabbie/releases/latest)
 2. Extract over your loaded extension folder (or point Load unpacked at the new folder)
-3. On `chrome://extensions`, click **Reload** for Tabbie
+3. On `chrome://extensions`, click **Reload** for CapTab
 
 Settings → **Data** shows the installed version and a quiet “Update available” notice when a newer release exists (cached for 24 hours).
 
@@ -97,7 +99,7 @@ Silent Chrome auto-update requires publishing to the **Chrome Web Store** later 
 
 ## Data export / import
 
-Settings → **Export** / **Import** / **Reset all**. Bookmarks themselves stay in Chrome; Tabbie only stores which folder view you last opened.
+Settings → **Export** / **Import** / **Reset all**. Bookmarks themselves stay in Chrome; CapTab only stores which folder view you last opened. Backups labeled `app: "tabbie"` still import.
 
 ## Tech
 

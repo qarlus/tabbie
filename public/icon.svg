@@ -1,14 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Tabbie">
-  <rect width="64" height="64" rx="14" fill="#5F8F8C"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CapTab">
+  <!-- Warm Capbar-family tile -->
+  <rect width="64" height="64" rx="14" fill="#2C2218"/>
 
-  <!-- Soft ears -->
-  <ellipse cx="20" cy="18.5" rx="7.2" ry="8.5" fill="#C5D9C3" stroke="#2F3F45" stroke-width="2"/>
-  <ellipse cx="44" cy="18.5" rx="7.2" ry="8.5" fill="#C5D9C3" stroke="#2F3F45" stroke-width="2"/>
+  <!-- Capybara ears (fur) -->
+  <ellipse cx="20" cy="17.5" rx="7.4" ry="8.8" fill="#C4A574" stroke="#5C4030" stroke-width="2"/>
+  <ellipse cx="44" cy="17.5" rx="7.4" ry="8.8" fill="#C4A574" stroke="#5C4030" stroke-width="2"/>
+  <!-- Inner ear -->
+  <ellipse cx="20" cy="18.2" rx="3.2" ry="4" fill="#E8C49A"/>
+  <ellipse cx="44" cy="18.2" rx="3.2" ry="4" fill="#E8C49A"/>
 
-  <!-- Browser tab body -->
+  <!-- Browser tab body (cream paper) -->
   <path
-    fill="#F7F4ED"
-    stroke="#2F3F45"
+    fill="#F5F0E8"
+    stroke="#5C4030"
     stroke-width="2"
     stroke-linejoin="round"
     d="
@@ -29,18 +33,27 @@
   />
 
   <!-- Traffic-light dots on the tab -->
-  <circle cx="19.5" cy="26.2" r="1.55" fill="#2F3F45"/>
-  <circle cx="24" cy="26.2" r="1.55" fill="#2F3F45"/>
-  <circle cx="28.5" cy="26.2" r="1.55" fill="#2F3F45"/>
+  <circle cx="19.5" cy="26.2" r="1.55" fill="#5C4030"/>
+  <circle cx="24" cy="26.2" r="1.55" fill="#5C4030"/>
+  <circle cx="28.5" cy="26.2" r="1.55" fill="#5C4030"/>
+
+  <!-- Soft blush (capybara warmth) -->
+  <ellipse cx="22.5" cy="38.5" rx="3.2" ry="1.8" fill="#E8A0A8" opacity="0.7"/>
+  <ellipse cx="41.5" cy="38.5" rx="3.2" ry="1.8" fill="#E8A0A8" opacity="0.7"/>
+
+  <!-- Muzzle hint -->
+  <ellipse cx="32" cy="40.2" rx="6.5" ry="4.2" fill="#D4A574" opacity="0.55"/>
 
   <!-- Face -->
-  <circle cx="27" cy="36.5" r="2.35" fill="#2F3F45"/>
-  <circle cx="37" cy="36.5" r="2.35" fill="#2F3F45"/>
+  <circle cx="27" cy="36.2" r="2.35" fill="#1A1410"/>
+  <circle cx="37" cy="36.2" r="2.35" fill="#1A1410"/>
+  <!-- w-mouth like Capbar sibling -->
   <path
-    d="M28 42.2c1.6 1.8 6.4 1.8 8 0"
+    d="M27.5 42.2q2.2 3.2 4.5 0q2.2 3.2 4.5 0"
     fill="none"
-    stroke="#2F3F45"
+    stroke="#1A1410"
     stroke-width="2"
     stroke-linecap="round"
+    stroke-linejoin="round"
   />
 </svg>

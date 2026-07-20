@@ -46,6 +46,7 @@ import { ENGINES } from "@/lib/search";
 import { WORLD_CLOCK_CITIES } from "@/lib/clocks";
 import { THEMES } from "@/lib/themes";
 import { FONTS, SURFACES } from "@/lib/look";
+import { LAYOUT_MODES, WALLPAPERS } from "@/lib/scene";
 import {
   RELEASES_URL,
   checkForUpdate,
@@ -60,8 +61,17 @@ import {
 } from "@/lib/chrome";
 import { createStarterPack } from "@/lib/modules";
 import type { LinearConfig } from "@/lib/linear";
-import type { FontId, GithubConfig, Settings, SurfaceId, ThemeId, WorldClocksDisplay } from "@/lib/types";
-import { TabbieMark } from "./TabbieMark";
+import type {
+  FontId,
+  GithubConfig,
+  LayoutModeId,
+  Settings,
+  SurfaceId,
+  ThemeId,
+  WallpaperId,
+  WorldClocksDisplay,
+} from "@/lib/types";
+import { CapTabMark } from "./CapTabMark";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -212,7 +222,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
         <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
           <DialogHeader className="shrink-0 space-y-1 border-b border-black/6 px-6 py-4 dark:border-white/8">
             <div className="flex items-center gap-2.5">
-              <TabbieMark className="h-7 w-7 shrink-0 rounded-[7px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
+              <CapTabMark className="h-7 w-7 shrink-0 rounded-[7px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
               <div className="min-w-0">
                 <DialogTitle>Settings</DialogTitle>
                 <DialogDescription>Stored only in this browser, on this device.</DialogDescription>
@@ -246,7 +256,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
-              <TabsContent value="general" className="tabbie-tab-enter mt-0 flex flex-col gap-5">
+              <TabsContent value="general" className="captab-tab-enter mt-0 flex flex-col gap-5">
                 <Field label="Display name" htmlFor="settings-name">
                   <Input
                     id="settings-name"
@@ -295,7 +305,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                 </p>
               </TabsContent>
 
-              <TabsContent value="look" className="tabbie-tab-enter mt-0 flex flex-col gap-5">
+              <TabsContent value="look" className="captab-tab-enter mt-0 flex flex-col gap-5">
                 <Field label="Appearance">
                   <ToggleGroup
                     type="single"
@@ -341,6 +351,88 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                             />
                           </span>
                           <span className="px-0.5 text-[11px] text-foreground/75">{t.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+
+                <Field
+                  label="Wallpaper"
+                  hint="Handmade scenic art under the theme wash. Default is Impasto."
+                >
+                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+                    {WALLPAPERS.map((w) => {
+                      const selected = settings.wallpaper === w.id;
+                      return (
+                        <button
+                          key={w.id}
+                          type="button"
+                          title={w.hint}
+                          aria-label={`Wallpaper: ${w.name}`}
+                          aria-pressed={selected}
+                          onClick={() =>
+                            setSettings((s) => ({ ...s, wallpaper: w.id as WallpaperId }))
+                          }
+                          className={cn(
+                            "flex flex-col gap-1.5 rounded-lg border p-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
+                            selected
+                              ? "border-ac/40 bg-ac/10"
+                              : "border-black/8 hover:bg-black/[0.03] dark:border-white/10 dark:hover:bg-white/[0.05]"
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "relative h-12 w-full overflow-hidden rounded-md bg-cover bg-center",
+                              selected && "ring-2 ring-ac"
+                            )}
+                            style={
+                              w.src
+                                ? { backgroundImage: `url(${w.src})` }
+                                : { background: w.preview }
+                            }
+                          />
+                          <span className="px-0.5">
+                            <span className="block text-sm font-medium text-foreground">{w.name}</span>
+                            <span className="block text-[10px] leading-snug text-muted-foreground">
+                              {w.hint}
+                            </span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </Field>
+
+                <Field
+                  label="Layout"
+                  hint="How modules arrange — your module order and sizes stay the same."
+                >
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {LAYOUT_MODES.map((m) => {
+                      const selected = settings.layoutMode === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          title={m.hint}
+                          aria-label={`Layout: ${m.name}`}
+                          aria-pressed={selected}
+                          onClick={() =>
+                            setSettings((s) => ({ ...s, layoutMode: m.id as LayoutModeId }))
+                          }
+                          className={cn(
+                            "flex flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
+                            selected
+                              ? "border-ac/40 bg-ac/10"
+                              : "border-black/8 hover:bg-black/[0.03] dark:border-white/10 dark:hover:bg-white/[0.05]"
+                          )}
+                        >
+                          <LayoutModeGlyph mode={m.id} active={selected} />
+                          <span className="text-sm font-medium text-foreground">{m.name}</span>
+                          <span className="text-[10px] leading-snug text-muted-foreground">
+                            {m.hint}
+                          </span>
                         </button>
                       );
                     })}
@@ -449,7 +541,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                 </Field>
               </TabsContent>
 
-              <TabsContent value="clocks" className="tabbie-tab-enter mt-0 flex flex-col gap-5">
+              <TabsContent value="clocks" className="captab-tab-enter mt-0 flex flex-col gap-5">
                 <Field
                   label="World clocks"
                   hint="Local time stays in the top bar. Add cities to show beside it."
@@ -508,10 +600,10 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                 )}
               </TabsContent>
 
-              <TabsContent value="connections" className="tabbie-tab-enter mt-0 flex flex-col gap-6">
+              <TabsContent value="connections" className="captab-tab-enter mt-0 flex flex-col gap-6">
                 <p className="text-xs leading-relaxed text-muted-foreground">
                   Opt-in accounts for Resume modules. Keys stay in this browser — never uploaded by
-                  Tabbie. Agenda feeds, RSS, and weather stay on each module.
+                  CapTab. Agenda feeds, RSS, and weather stay on each module.
                 </p>
 
                 <ConnectionBlock
@@ -622,7 +714,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                   hint={
                     extension
                       ? "Chrome only reads bookmarks when you allow it. Nothing is uploaded."
-                      : "Install Tabbie as an extension to enable bookmark access."
+                      : "Install CapTab as an extension to enable bookmark access."
                   }
                 >
                   <div className="flex items-center gap-2">
@@ -652,7 +744,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                 </ConnectionBlock>
               </TabsContent>
 
-              <TabsContent value="data" className="tabbie-tab-enter mt-0 flex flex-col gap-5">
+              <TabsContent value="data" className="captab-tab-enter mt-0 flex flex-col gap-5">
                 <Field label="Version" hint={`Installed ${version}`}>
                   {updateInfo ? (
                     <div className="flex flex-col gap-2 rounded-lg border border-ac/25 bg-ac/10 px-3.5 py-3">
@@ -784,7 +876,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
           <AlertDialogHeader>
             <AlertDialogTitle>Reset everything?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes all Tabbie data in this browser — shortcuts, settings, modules,
+              This permanently deletes all CapTab data in this browser — shortcuts, settings, modules,
               and GitHub/Linear credentials. Consider exporting first.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -845,6 +937,45 @@ function ConnectionBlock({
       </div>
       {children}
     </div>
+  );
+}
+
+function LayoutModeGlyph({ mode, active }: { mode: LayoutModeId; active: boolean }) {
+  const cell = cn("rounded-[2px]", active ? "bg-ac/70" : "bg-foreground/25");
+  return (
+    <span className="mb-0.5 flex h-7 w-full items-end gap-0.5" aria-hidden>
+      {mode === "stack" ? (
+        <>
+          <span className={cn(cell, "h-4 flex-1")} />
+          <span className={cn(cell, "h-5 flex-1")} />
+        </>
+      ) : null}
+      {mode === "bento" ? (
+        <>
+          <span className={cn(cell, "h-5 w-[38%]")} />
+          <span className="flex h-5 flex-1 flex-col gap-0.5">
+            <span className={cn(cell, "h-2 w-full")} />
+            <span className={cn(cell, "h-2.5 w-full")} />
+          </span>
+          <span className={cn(cell, "h-4 w-[22%]")} />
+        </>
+      ) : null}
+      {mode === "magazine" ? (
+        <>
+          <span className={cn(cell, "h-5 w-[58%]")} />
+          <span className="flex h-5 flex-1 flex-col gap-0.5">
+            <span className={cn(cell, "h-2 w-full")} />
+            <span className={cn(cell, "h-2.5 w-full")} />
+          </span>
+        </>
+      ) : null}
+      {mode === "islands" ? (
+        <>
+          <span className={cn(cell, "mb-1.5 h-3.5 flex-1")} />
+          <span className={cn(cell, "mt-1.5 h-4 flex-1")} />
+        </>
+      ) : null}
+    </span>
   );
 }
 

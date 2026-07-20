@@ -16,6 +16,13 @@ export interface ThemeDefinition {
  */
 export const THEMES: ThemeDefinition[] = [
   {
+    id: "honey",
+    name: "Honey",
+    hint: "Capbar caramel — warm paper",
+    preview: "linear-gradient(160deg, #f5f0e8 0%, #e8dcc8 100%)",
+    accent: "#d4a574",
+  },
+  {
     id: "slate",
     name: "Slate",
     hint: "Cool neutral, steel accent",
@@ -86,13 +93,6 @@ export const THEMES: ThemeDefinition[] = [
     accent: "hsl(320 28% 42%)",
   },
   {
-    id: "honey",
-    name: "Honey",
-    hint: "Golden yellow accent",
-    preview: "linear-gradient(160deg, #f3efe4 0%, #e6dcc4 100%)",
-    accent: "hsl(42 62% 38%)",
-  },
-  {
     id: "midnight",
     name: "Midnight",
     hint: "Deep indigo accent",
@@ -102,5 +102,5 @@ export const THEMES: ThemeDefinition[] = [
 ];
 
 export function themeById(id: ThemeId): ThemeDefinition {
-  return THEMES.find((t) => t.id === id) ?? THEMES[0];
+  return THEMES.find((t) => t.id === id) ?? THEMES.find((t) => t.id === "honey") ?? THEMES[0]!;
 }

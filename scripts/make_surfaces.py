@@ -1,5 +1,5 @@
 """
-Distinctive Tabbie surface tiles — each has a clear material identity.
+Distinctive CapTab surface tiles — each has a clear material identity.
 
 Greyscale luminance only; CSS mix-blend + theme wash colour them.
 Tile sizes and CSS background-size must stay in sync (see index.css).

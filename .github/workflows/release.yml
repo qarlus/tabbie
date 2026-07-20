@@ -40,11 +40,11 @@ jobs:
       - name: Zip extension
         run: |
           cd dist
-          zip -r ../tabbie.zip .
+          zip -r ../captab.zip .
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: tabbie.zip
+          files: captab.zip
           generate_release_notes: true
           fail_on_unmatched_files: true

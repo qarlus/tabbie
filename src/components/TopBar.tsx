@@ -9,7 +9,7 @@ import {
   type WorldClockCity,
 } from "@/lib/clocks";
 import type { Settings as AppSettings } from "@/lib/types";
-import { TabbieMark } from "./TabbieMark";
+import { CapTabMark } from "./CapTabMark";
 
 interface TopBarProps {
   settings: AppSettings;
@@ -40,9 +40,9 @@ export function TopBar({ settings, onOpenSettings, className }: TopBarProps) {
       )}
     >
       <div className="flex min-w-0 items-center gap-2.5">
-        <TabbieMark className="h-5 w-5 shrink-0 rounded-[5px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
+        <CapTabMark className="h-5 w-5 shrink-0 rounded-[5px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
         <span className="text-xs font-medium tracking-wide text-muted-foreground/70 select-none">
-          tabbie
+          captab
         </span>
 
         <div
