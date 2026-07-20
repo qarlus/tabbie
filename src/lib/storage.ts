@@ -22,6 +22,13 @@ export const KNOWN_KEYS = [
   "starter-done",
   "update-check",
   "theme", // written by next-themes (storageKey)
+  "clipboard-shelf",
+  "parked-sessions",
+  "capbar-glance",
+  "open-streak",
+  "tasks-config",
+  "pages",
+  "sync-updated-at",
 ] as const;
 
 /**

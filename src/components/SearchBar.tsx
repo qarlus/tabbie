@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { CornerDownLeft, History, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  engineById,
   hostnameOf,
   looksLikeUrl,
   matchRecents,
@@ -12,6 +11,7 @@ import {
 } from "@/lib/search";
 import { navigateFast, warmUrl } from "@/lib/fast-link";
 import type { Settings, Shortcut } from "@/lib/types";
+import { t } from "@/lib/i18n";
 import { SiteIcon } from "@/components/SiteIcon";
 
 interface SearchBarProps {
@@ -33,7 +33,6 @@ export function SearchBar({ settings, shortcuts, recents, onSearch, inputRef }: 
   const [active, setActive] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const engine = engineById(settings.engine);
   const parsed = parseQuery(input, settings.engine);
 
   const suggestions: Suggestion[] = (() => {
@@ -112,6 +111,9 @@ export function SearchBar({ settings, shortcuts, recents, onSearch, inputRef }: 
     }
   }
 
+  const modKey =
+    typeof navigator !== "undefined" && /Mac|iPhone|iPod|iPad/i.test(navigator.platform) ? "⌘" : "Ctrl";
+
   return (
     <div ref={containerRef} className="relative w-full">
       <div
@@ -139,13 +141,18 @@ export function SearchBar({ settings, shortcuts, recents, onSearch, inputRef }: 
           role="combobox"
           aria-expanded={open && suggestions.length > 0}
           aria-label="Search"
-          placeholder={`Search ${engine.name} or enter a URL`}
+          placeholder={t("search.placeholder", settings.locale)}
           className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground/45"
         />
         {parsed.bang && (
           <span className="hidden shrink-0 text-xs text-muted-foreground sm:inline">{parsed.targetName}</span>
         )}
       </div>
+
+      <p className="mt-1.5 text-center text-[10px] tracking-wide text-muted-foreground/40">
+        <span className="hidden sm:inline">{modKey}K · </span>
+        <span>/ search</span>
+      </p>
 
       {open && suggestions.length > 0 && (
         <div

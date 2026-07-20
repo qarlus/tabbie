@@ -42,10 +42,24 @@ import {
 } from "@/lib/modules";
 import type { Settings } from "@/lib/types";
 import type { LayoutModeId } from "@/lib/scene";
+import { t } from "@/lib/i18n";
 import { ModuleMenu } from "./ModuleMenu";
 import { CapTabMark } from "./CapTabMark";
 
 const EMPTY_DATA: ModuleDataMap = {};
+
+function defaultFreeformPosition(index: number): { x: number; y: number } {
+  const col = index % 3;
+  const row = Math.floor(index / 3);
+  return { x: 4 + col * 32, y: 6 + row * 30 };
+}
+
+function modulePosition(mod: PlacedModule, index: number): { x: number; y: number } {
+  if (typeof mod.x === "number" && typeof mod.y === "number") {
+    return { x: mod.x, y: mod.y };
+  }
+  return defaultFreeformPosition(index);
+}
 
 const LANE_LABEL: Record<ModuleLane, string> = {
   resume: "Resume",
@@ -88,6 +102,7 @@ function cardSpanClass(
   compact: boolean,
   index: number
 ): string {
+  if (mode === "freeform") return "absolute w-[min(100%,22rem)] max-w-md";
   if (compact) return "w-full";
   switch (mode) {
     case "bento":
@@ -172,6 +187,12 @@ export function ModuleDock({
       return;
     }
     const { placed, data } = createPlacedModule(type);
+    if (layoutMode === "freeform" && entry.size !== "compact") {
+      const cardCount = layout.modules.filter((m) => getModule(m.type)?.size !== "compact").length;
+      const pos = defaultFreeformPosition(cardCount);
+      placed.x = pos.x;
+      placed.y = pos.y;
+    }
     setModules((prev) => {
       // Compact modules pin to the top of the dock on add.
       if (entry.size === "compact") return [placed, ...prev];
@@ -219,11 +240,22 @@ export function ModuleDock({
     items: available.filter((c) => c.lane === lane),
   })).filter((g) => g.items.length > 0);
 
+  function updateModulePosition(id: string, x: number, y: number) {
+    setModules((prev) =>
+      prev.map((m) =>
+        m.id === id ? { ...m, x: Math.min(95, Math.max(0, x)), y: Math.min(95, Math.max(0, y)) } : m
+      )
+    );
+  }
+
   const compactMods = layout.modules.filter((m) => getModule(m.type)?.size === "compact");
   const cardMods = layout.modules.filter((m) => getModule(m.type)?.size !== "compact");
+  const addModuleLabel = t("addModule", settings.locale);
 
-  function renderModule(mod: PlacedModule, index: number) {
+  function renderModule(mod: PlacedModule, index: number, freeformIndex?: number) {
     const def = getModule(mod.type);
+    const isFreeform = layoutMode === "freeform" && def?.size !== "compact";
+    const pos = isFreeform ? modulePosition(mod, freeformIndex ?? index) : undefined;
     return (
       <SortableModule
         key={mod.id}
@@ -231,6 +263,8 @@ export function ModuleDock({
         def={def}
         layoutMode={layoutMode}
         cardIndex={index}
+        freeformPos={pos}
+        onFreeformMove={isFreeform ? updateModulePosition : undefined}
         data={
           dataRaw[mod.id] ?? (def?.defaultData ? def.defaultData() : undefined)
         }
@@ -267,9 +301,15 @@ export function ModuleDock({
                 </div>
               ) : null}
               {cardMods.length > 0 ? (
-                <div className={cardGridClass(layoutMode)}>
-                  {cardMods.map((m, i) => renderModule(m, i))}
-                </div>
+                layoutMode === "freeform" ? (
+                  <div className="relative min-h-[70vh] w-full">
+                    {cardMods.map((m, i) => renderModule(m, i, i))}
+                  </div>
+                ) : (
+                  <div className={cardGridClass(layoutMode)}>
+                    {cardMods.map((m, i) => renderModule(m, i))}
+                  </div>
+                )
               ) : null}
             </div>
           </SortableContext>
@@ -282,7 +322,7 @@ export function ModuleDock({
           onClick={() => setAddOpen(true)}
           className="flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm text-muted-foreground transition-colors hover:bg-black/[0.03] hover:text-foreground dark:hover:bg-white/[0.04]"
         >
-          <Plus className="h-3.5 w-3.5" /> Add module
+          <Plus className="h-3.5 w-3.5" /> {addModuleLabel}
         </button>
       ) : null}
 
@@ -292,7 +332,7 @@ export function ModuleDock({
             <div className="flex items-start gap-2.5">
               <CapTabMark className="mt-0.5 h-7 w-7 shrink-0 rounded-[7px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
               <div className="min-w-0">
-                <DialogTitle>Add a module</DialogTitle>
+                <DialogTitle>{t("addModule.title", settings.locale)}</DialogTitle>
                 <DialogDescription>
                   Compact strips sit above cards. Drag to reorder within each band; use ⋯ to resize
                   or remove.
@@ -361,6 +401,8 @@ function SortableModule({
   data,
   layoutMode,
   cardIndex,
+  freeformPos,
+  onFreeformMove,
   onDataChange,
   onRemove,
   onToggleSpan,
@@ -370,26 +412,82 @@ function SortableModule({
   data: unknown;
   layoutMode: LayoutModeId;
   cardIndex: number;
+  freeformPos?: { x: number; y: number };
+  onFreeformMove?: (id: string, x: number, y: number) => void;
   onDataChange: (next: unknown) => void;
   onRemove: () => void;
   onToggleSpan: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: module.id,
+    disabled: layoutMode === "freeform" && def?.size !== "compact",
   });
 
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(
+    null
+  );
+  const containerRef = useRef<HTMLElement | null>(null);
+
   const style: React.CSSProperties = {
-    transform: CSS.Translate.toString(transform),
-    transition,
+    transform: freeformPos ? undefined : CSS.Translate.toString(transform),
+    transition: freeformPos ? undefined : transition,
+    ...(freeformPos
+      ? {
+          left: `${freeformPos.x}%`,
+          top: `${freeformPos.y}%`,
+        }
+      : {}),
   };
+
+  function onFreeformPointerDown(e: React.PointerEvent) {
+    if (!onFreeformMove || !freeformPos) return;
+    const canvas = (e.currentTarget as HTMLElement).offsetParent as HTMLElement | null;
+    if (!canvas) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragRef.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: freeformPos.x,
+      origY: freeformPos.y,
+    };
+    containerRef.current = canvas;
+  }
+
+  function onFreeformPointerMove(e: React.PointerEvent) {
+    if (!dragRef.current || !onFreeformMove || !containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    const dx = ((e.clientX - dragRef.current.startX) / rect.width) * 100;
+    const dy = ((e.clientY - dragRef.current.startY) / rect.height) * 100;
+    onFreeformMove(
+      module.id,
+      dragRef.current.origX + dx,
+      dragRef.current.origY + dy
+    );
+  }
+
+  function onFreeformPointerUp(e: React.PointerEvent) {
+    dragRef.current = null;
+    containerRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+  }
 
   const handle = (
     <button
       type="button"
       className="flex h-7 w-7 cursor-grab items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-black/5 hover:text-foreground active:cursor-grabbing dark:hover:bg-white/10"
       aria-label="Drag to reorder"
-      {...attributes}
-      {...listeners}
+      {...(freeformPos
+        ? {
+            onPointerDown: onFreeformPointerDown,
+            onPointerMove: onFreeformPointerMove,
+            onPointerUp: onFreeformPointerUp,
+            onPointerCancel: onFreeformPointerUp,
+          }
+        : { ...attributes, ...listeners })}
     >
       <GripVertical className="h-3.5 w-3.5" />
     </button>

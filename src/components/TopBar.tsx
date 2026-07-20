@@ -3,11 +3,17 @@ import { Moon, Settings, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import {
+  clockHandAngles,
+  formatBinaryClock,
+  formatLiteraryClock,
+} from "@/lib/clock-faces";
+import {
   dayOffsetVsLocal,
   formatClock,
   resolveWorldClocks,
   type WorldClockCity,
 } from "@/lib/clocks";
+import { t } from "@/lib/i18n";
 import type { Settings as AppSettings } from "@/lib/types";
 import { CapTabMark } from "./CapTabMark";
 
@@ -31,6 +37,7 @@ export function TopBar({ settings, onOpenSettings, className }: TopBarProps) {
   const name = settings.name.trim();
   const showAlways = settings.worldClocksDisplay === "always" && worldCities.length > 0;
   const showHover = settings.worldClocksDisplay === "hover" && worldCities.length > 0;
+  const settingsLabel = t("settings.aria", settings.locale);
 
   return (
     <header
@@ -49,13 +56,13 @@ export function TopBar({ settings, onOpenSettings, className }: TopBarProps) {
           className={cn("relative ml-1", showHover && "group")}
           tabIndex={showHover ? 0 : undefined}
         >
-          <time
-            dateTime={now.toISOString()}
-            className="font-clock text-sm tabular-nums text-foreground/75 select-none"
-            aria-label={showHover ? "Local time — hover for world clocks" : "Local time"}
-          >
-            {localTime}
-          </time>
+          <ClockDisplay
+            now={now}
+            clockFace={settings.clockFace}
+            clock24={settings.clock24}
+            localTime={localTime}
+            showHover={showHover}
+          />
 
           {showAlways ? (
             <span className="ml-2.5 hidden items-baseline gap-2 sm:inline-flex">
@@ -90,11 +97,107 @@ export function TopBar({ settings, onOpenSettings, className }: TopBarProps) {
         >
           {resolvedTheme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
         </TopBarButton>
-        <TopBarButton label="Settings" onClick={onOpenSettings}>
+        <TopBarButton label={settingsLabel} onClick={onOpenSettings}>
           <Settings className="h-3.5 w-3.5" />
         </TopBarButton>
       </div>
     </header>
+  );
+}
+
+function ClockDisplay({
+  now,
+  clockFace,
+  clock24,
+  localTime,
+  showHover,
+}: {
+  now: Date;
+  clockFace: AppSettings["clockFace"];
+  clock24: boolean;
+  localTime: string;
+  showHover: boolean;
+}) {
+  const ariaLabel = showHover ? "Local time — hover for world clocks" : "Local time";
+
+  if (clockFace === "analog") {
+    const { hour, minute } = clockHandAngles(now);
+    return (
+      <time dateTime={now.toISOString()} aria-label={ariaLabel} className="inline-flex items-center">
+        <svg viewBox="0 0 32 32" className="h-7 w-7 text-foreground/75" aria-hidden>
+          <circle cx="16" cy="16" r="14" fill="none" stroke="currentColor" strokeWidth="1.2" opacity="0.35" />
+          {[0, 90, 180, 270].map((deg) => (
+            <line
+              key={deg}
+              x1="16"
+              y1="3"
+              x2="16"
+              y2="5"
+              stroke="currentColor"
+              strokeWidth="1"
+              opacity="0.4"
+              transform={`rotate(${deg} 16 16)`}
+            />
+          ))}
+          <line
+            x1="16"
+            y1="16"
+            x2="16"
+            y2="9"
+            stroke="currentColor"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            transform={`rotate(${hour} 16 16)`}
+          />
+          <line
+            x1="16"
+            y1="16"
+            x2="16"
+            y2="6"
+            stroke="currentColor"
+            strokeWidth="1"
+            strokeLinecap="round"
+            transform={`rotate(${minute} 16 16)`}
+          />
+          <circle cx="16" cy="16" r="1.2" fill="currentColor" />
+        </svg>
+      </time>
+    );
+  }
+
+  if (clockFace === "binary") {
+    return (
+      <time
+        dateTime={now.toISOString()}
+        className="font-mono text-[11px] tabular-nums tracking-tight text-foreground/75 select-none"
+        aria-label={ariaLabel}
+      >
+        {formatBinaryClock(now, clock24)}
+      </time>
+    );
+  }
+
+  if (clockFace === "literary") {
+    return (
+      <time
+        dateTime={now.toISOString()}
+        className="max-w-[10rem] truncate text-xs italic text-foreground/70 select-none sm:max-w-none"
+        aria-label={ariaLabel}
+        title={localTime}
+      >
+        {formatLiteraryClock(now, clock24)}
+      </time>
+    );
+  }
+
+  return (
+    <time
+      dateTime={now.toISOString()}
+      className="font-clock text-sm tabular-nums text-foreground/75 select-none"
+      aria-label={ariaLabel}
+    >
+      {localTime}
+    </time>
   );
 }
 

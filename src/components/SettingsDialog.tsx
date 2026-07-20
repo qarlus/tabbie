@@ -3,8 +3,11 @@ import { useTheme } from "next-themes";
 import {
   ArrowUpCircle,
   Bookmark,
+  ClipboardPaste,
   Download,
   Github,
+  Globe,
+  History,
   KeyRound,
   Loader2,
   SquareKanban,
@@ -40,13 +43,11 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import { downloadBackup, importAll, resetAll, useStoredState, writeKey } from "@/lib/storage";
 import { ENGINES } from "@/lib/search";
 import { WORLD_CLOCK_CITIES } from "@/lib/clocks";
-import { THEMES } from "@/lib/themes";
-import { FONTS, SURFACES } from "@/lib/look";
-import { LAYOUT_MODES, WALLPAPERS } from "@/lib/scene";
 import {
   RELEASES_URL,
   checkForUpdate,
@@ -58,20 +59,22 @@ import {
   isExtension,
   removePermission,
   requestPermission,
+  type ChromePermission,
 } from "@/lib/chrome";
 import { createStarterPack } from "@/lib/modules";
 import type { LinearConfig } from "@/lib/linear";
+import { LOCALES, t } from "@/lib/i18n";
+import { GITHUB_TOKEN_URL, LINEAR_API_KEYS_URL, OAUTH_NOTE } from "@/lib/oauth";
+import { clockFaceLabel } from "@/lib/clock-faces";
 import type {
-  FontId,
+  ClockFaceId,
   GithubConfig,
-  LayoutModeId,
   Settings,
-  SurfaceId,
-  ThemeId,
-  WallpaperId,
   WorldClocksDisplay,
 } from "@/lib/types";
+import { CLOCK_FACE_IDS } from "@/lib/types";
 import { CapTabMark } from "./CapTabMark";
+import { SettingsLookPanel, type LookSection } from "./settings/SettingsLookPanel";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -83,6 +86,52 @@ interface SettingsDialogProps {
 const EMPTY_GITHUB: GithubConfig = { username: "", token: "" };
 const EMPTY_LINEAR: LinearConfig = { token: "" };
 
+type PermissionRow = {
+  id: ChromePermission;
+  title: string;
+  hint: string;
+  icon: typeof Bookmark;
+};
+
+const BROWSER_PERMISSIONS: PermissionRow[] = [
+  {
+    id: "bookmarks",
+    title: "Bookmarks",
+    hint: "Bookmark bar and folders for the Bookmarks module.",
+    icon: Bookmark,
+  },
+  {
+    id: "history",
+    title: "History",
+    hint: "Recent and frequent sites for Continue, plus optional streak hints.",
+    icon: History,
+  },
+  {
+    id: "sessions",
+    title: "Sessions",
+    hint: "Recently closed tabs in the Continue strip.",
+    icon: History,
+  },
+  {
+    id: "topSites",
+    title: "Top sites",
+    hint: "Most-visited sites from this browser.",
+    icon: Globe,
+  },
+  {
+    id: "downloads",
+    title: "Downloads",
+    hint: "Last few downloads — open, show folder, copy path.",
+    icon: Download,
+  },
+  {
+    id: "clipboardRead",
+    title: "Clipboard",
+    hint: "Snapshot clipboard when you open a new tab — local shelf only.",
+    icon: ClipboardPaste,
+  },
+];
+
 export function SettingsDialog({ open, onOpenChange, settings, setSettings }: SettingsDialogProps) {
   const { theme, setTheme } = useTheme();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -90,6 +139,7 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
   const [confirmReset, setConfirmReset] = useState(false);
   const [confirmStarter, setConfirmStarter] = useState(false);
   const [tab, setTab] = useState("general");
+  const [lookSection, setLookSection] = useState<LookSection>("theme");
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [updateStatus, setUpdateStatus] = useState<"idle" | "checking" | "current" | "error">("idle");
   const [updateError, setUpdateError] = useState("");
@@ -102,10 +152,14 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
   const [linToken, setLinToken] = useState(linearConfig.token);
   const [ghSaved, setGhSaved] = useState(false);
   const [linSaved, setLinSaved] = useState(false);
-  const [bookmarksAllowed, setBookmarksAllowed] = useState(false);
-  const [bookmarksBusy, setBookmarksBusy] = useState(false);
+  const [permState, setPermState] = useState<Partial<Record<ChromePermission, boolean>>>({});
+  const [permBusy, setPermBusy] = useState<ChromePermission | null>(null);
   const [cacheCleared, setCacheCleared] = useState(false);
   const extension = isExtension();
+
+  useEffect(() => {
+    if (tab === "clocks") setTab("general");
+  }, [tab]);
 
   useEffect(() => {
     if (!open) return;
@@ -120,8 +174,14 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
   useEffect(() => {
     if (!open || tab !== "connections") return;
     let cancelled = false;
-    void hasPermission("bookmarks").then((ok) => {
-      if (!cancelled) setBookmarksAllowed(ok);
+    void Promise.all(
+      BROWSER_PERMISSIONS.map(async (row) => {
+        const ok = await hasPermission(row.id);
+        return [row.id, ok] as const;
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      setPermState(Object.fromEntries(entries));
     });
     return () => {
       cancelled = true;
@@ -200,31 +260,32 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
     onOpenChange(false);
   }
 
-  async function toggleBookmarks() {
+  async function togglePermission(id: ChromePermission) {
     if (!extension) return;
-    setBookmarksBusy(true);
+    setPermBusy(id);
     try {
-      if (bookmarksAllowed) {
-        const ok = await removePermission("bookmarks");
-        if (ok) setBookmarksAllowed(false);
+      const allowed = permState[id] === true;
+      if (allowed) {
+        const ok = await removePermission(id);
+        if (ok) setPermState((prev) => ({ ...prev, [id]: false }));
       } else {
-        const ok = await requestPermission("bookmarks");
-        if (ok) setBookmarksAllowed(true);
+        const ok = await requestPermission(id);
+        if (ok) setPermState((prev) => ({ ...prev, [id]: true }));
       }
     } finally {
-      setBookmarksBusy(false);
+      setPermBusy(null);
     }
   }
 
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+        <DialogContent className="flex max-h-[min(88vh,720px)] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 space-y-1 border-b border-black/6 px-6 py-4 dark:border-white/8">
             <div className="flex items-center gap-2.5">
               <CapTabMark className="h-7 w-7 shrink-0 rounded-[7px] shadow-sm ring-1 ring-black/5 dark:ring-white/10" />
               <div className="min-w-0">
-                <DialogTitle>Settings</DialogTitle>
+                <DialogTitle>{t("settings.title", settings.locale)}</DialogTitle>
                 <DialogDescription>Stored only in this browser, on this device.</DialogDescription>
               </div>
             </div>
@@ -236,40 +297,59 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
             className="flex min-h-0 flex-1 flex-col gap-0"
           >
             <div className="shrink-0 px-6 pt-3">
-              <TabsList className="grid h-9 w-full grid-cols-5">
-                <TabsTrigger value="general" className="px-1 text-[11px] sm:text-xs">
-                  General
+              <TabsList className="grid h-9 w-full grid-cols-4">
+                <TabsTrigger value="general" className="text-xs">
+                  {t("settings.general", settings.locale)}
                 </TabsTrigger>
-                <TabsTrigger value="look" className="px-1 text-[11px] sm:text-xs">
-                  Look
+                <TabsTrigger value="look" className="text-xs">
+                  {t("settings.look", settings.locale)}
                 </TabsTrigger>
-                <TabsTrigger value="clocks" className="px-1 text-[11px] sm:text-xs">
-                  Clocks
+                <TabsTrigger value="connections" className="text-xs">
+                  {t("settings.connect", settings.locale)}
                 </TabsTrigger>
-                <TabsTrigger value="connections" className="px-1 text-[11px] sm:text-xs">
-                  Connect
-                </TabsTrigger>
-                <TabsTrigger value="data" className="px-1 text-[11px] sm:text-xs">
-                  Data
+                <TabsTrigger value="data" className="text-xs">
+                  {t("settings.data", settings.locale)}
                 </TabsTrigger>
               </TabsList>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
               <TabsContent value="general" className="captab-tab-enter mt-0 flex flex-col gap-5">
-                <Field label="Display name" htmlFor="settings-name">
-                  <Input
-                    id="settings-name"
-                    value={settings.name}
-                    onChange={(e) => setSettings((s) => ({ ...s, name: e.target.value }))}
-                    placeholder="Optional"
-                  />
-                </Field>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Display name" htmlFor="settings-name">
+                    <Input
+                      id="settings-name"
+                      value={settings.name}
+                      onChange={(e) => setSettings((s) => ({ ...s, name: e.target.value }))}
+                      placeholder="Optional"
+                    />
+                  </Field>
+
+                  <Field label={t("language", settings.locale)}>
+                    <Select
+                      value={settings.locale}
+                      onValueChange={(v) => setSettings((s) => ({ ...s, locale: v }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LOCALES.map((loc) => (
+                          <SelectItem key={loc} value={loc}>
+                            {loc.toUpperCase()}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
 
                 <Field label="Default search engine">
                   <Select
                     value={settings.engine}
-                    onValueChange={(v) => setSettings((s) => ({ ...s, engine: v as Settings["engine"] }))}
+                    onValueChange={(v) =>
+                      setSettings((s) => ({ ...s, engine: v as Settings["engine"] }))
+                    }
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -284,332 +364,143 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                   </Select>
                 </Field>
 
-                <Field label="Clock format">
-                  <ToggleGroup
-                    type="single"
-                    value={settings.clock24 ? "24" : "12"}
-                    onValueChange={(v) => v && setSettings((s) => ({ ...s, clock24: v === "24" }))}
-                    className="justify-start"
-                  >
-                    <ToggleGroupItem value="12">12-hour</ToggleGroupItem>
-                    <ToggleGroupItem value="24">24-hour</ToggleGroupItem>
-                  </ToggleGroup>
-                </Field>
+                <div className="flex items-center justify-between gap-3 rounded-lg border border-black/6 px-3 py-2.5 dark:border-white/8">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">AI chat shortcuts</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      ChatGPT, Claude, Gemini, and Copilot under your shortcuts.
+                    </p>
+                  </div>
+                  <Switch
+                    checked={settings.showAiShortcuts}
+                    onCheckedChange={(v) => setSettings((s) => ({ ...s, showAiShortcuts: v }))}
+                    aria-label="AI chat shortcuts"
+                  />
+                </div>
+
+                <div className="rounded-xl border border-black/6 p-3.5 dark:border-white/8">
+                  <p className="mb-3 text-sm font-medium text-foreground">Clock</p>
+                  <div className="flex flex-col gap-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Format">
+                        <ToggleGroup
+                          type="single"
+                          value={settings.clock24 ? "24" : "12"}
+                          onValueChange={(v) =>
+                            v && setSettings((s) => ({ ...s, clock24: v === "24" }))
+                          }
+                          className="justify-start"
+                        >
+                          <ToggleGroupItem value="12">12-hour</ToggleGroupItem>
+                          <ToggleGroupItem value="24">24-hour</ToggleGroupItem>
+                        </ToggleGroup>
+                      </Field>
+                      <Field label="Face">
+                        <ToggleGroup
+                          type="single"
+                          value={settings.clockFace}
+                          onValueChange={(v) =>
+                            v && setSettings((s) => ({ ...s, clockFace: v as ClockFaceId }))
+                          }
+                          className="flex flex-wrap justify-start gap-1"
+                        >
+                          {CLOCK_FACE_IDS.map((face) => (
+                            <ToggleGroupItem key={face} value={face} className="text-xs">
+                              {clockFaceLabel(face)}
+                            </ToggleGroupItem>
+                          ))}
+                        </ToggleGroup>
+                      </Field>
+                    </div>
+
+                    <Field
+                      label="World clocks"
+                      hint="Shown beside local time in the top bar."
+                    >
+                      <ToggleGroup
+                        type="single"
+                        value={settings.worldClocksDisplay}
+                        onValueChange={(v) =>
+                          v &&
+                          setSettings((s) => ({
+                            ...s,
+                            worldClocksDisplay: v as WorldClocksDisplay,
+                          }))
+                        }
+                        className="justify-start"
+                      >
+                        <ToggleGroupItem value="hover">On hover</ToggleGroupItem>
+                        <ToggleGroupItem value="always">Always</ToggleGroupItem>
+                      </ToggleGroup>
+                    </Field>
+
+                    <div className="flex flex-wrap gap-1.5">
+                      {WORLD_CLOCK_CITIES.map((city) => {
+                        const selected = settings.worldClocks.includes(city.id);
+                        return (
+                          <button
+                            key={city.id}
+                            type="button"
+                            aria-pressed={selected}
+                            title={city.city}
+                            onClick={() =>
+                              setSettings((s) => ({
+                                ...s,
+                                worldClocks: selected
+                                  ? s.worldClocks.filter((id) => id !== city.id)
+                                  : [...s.worldClocks, city.id],
+                              }))
+                            }
+                            className={cn(
+                              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
+                              selected
+                                ? "bg-ac/15 text-foreground ring-1 ring-ac/35"
+                                : "bg-black/[0.04] text-muted-foreground hover:bg-black/[0.07] hover:text-foreground dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
+                            )}
+                          >
+                            <span className="font-medium">{city.city}</span>
+                            <span className="font-clock text-[10px] tabular-nums opacity-55">
+                              {city.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
 
                 <p className="rounded-lg bg-black/[0.03] px-3 py-2.5 text-xs leading-relaxed text-muted-foreground dark:bg-white/[0.04]">
-                  Press{" "}
                   <kbd className="rounded border border-black/10 bg-background px-1 py-0.5 font-mono text-[10px] text-foreground dark:border-white/15">
                     /
                   </kbd>{" "}
-                  anywhere on the page to focus search.
+                  focuses search ·{" "}
+                  <kbd className="rounded border border-black/10 bg-background px-1 py-0.5 font-mono text-[10px] text-foreground dark:border-white/15">
+                    ⌘K
+                  </kbd>{" "}
+                  opens the command palette.
                 </p>
               </TabsContent>
 
-              <TabsContent value="look" className="captab-tab-enter mt-0 flex flex-col gap-5">
-                <Field label="Appearance">
-                  <ToggleGroup
-                    type="single"
-                    value={theme ?? "system"}
-                    onValueChange={(v) => v && setTheme(v)}
-                    className="justify-start"
-                  >
-                    <ToggleGroupItem value="system">System</ToggleGroupItem>
-                    <ToggleGroupItem value="light">Light</ToggleGroupItem>
-                    <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
-                  </ToggleGroup>
-                </Field>
-
-                <Field label="Theme" hint="Page wash and accent, as a pair.">
-                  <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4">
-                    {THEMES.map((t) => {
-                      const selected = settings.theme === t.id;
-                      return (
-                        <button
-                          key={t.id}
-                          type="button"
-                          title={`${t.name} — ${t.hint}`}
-                          aria-label={`Theme: ${t.name}`}
-                          aria-pressed={selected}
-                          onClick={() => setSettings((s) => ({ ...s, theme: t.id as ThemeId }))}
-                          className={cn(
-                            "flex flex-col gap-1 rounded-lg p-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
-                            selected
-                              ? "bg-black/5 dark:bg-white/10"
-                              : "hover:bg-black/[0.03] dark:hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "relative h-7 w-full overflow-hidden rounded-md",
-                              selected && "ring-2 ring-ac"
-                            )}
-                            style={{ background: t.preview }}
-                          >
-                            <span
-                              className="absolute bottom-1 right-1 h-2 w-2 rounded-full shadow-sm ring-1 ring-black/10"
-                              style={{ backgroundColor: t.accent }}
-                            />
-                          </span>
-                          <span className="px-0.5 text-[11px] text-foreground/75">{t.name}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
-
-                <Field
-                  label="Wallpaper"
-                  hint="Handmade scenic art under the theme wash. Default is Impasto."
-                >
-                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-                    {WALLPAPERS.map((w) => {
-                      const selected = settings.wallpaper === w.id;
-                      return (
-                        <button
-                          key={w.id}
-                          type="button"
-                          title={w.hint}
-                          aria-label={`Wallpaper: ${w.name}`}
-                          aria-pressed={selected}
-                          onClick={() =>
-                            setSettings((s) => ({ ...s, wallpaper: w.id as WallpaperId }))
-                          }
-                          className={cn(
-                            "flex flex-col gap-1.5 rounded-lg border p-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
-                            selected
-                              ? "border-ac/40 bg-ac/10"
-                              : "border-black/8 hover:bg-black/[0.03] dark:border-white/10 dark:hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "relative h-12 w-full overflow-hidden rounded-md bg-cover bg-center",
-                              selected && "ring-2 ring-ac"
-                            )}
-                            style={
-                              w.src
-                                ? { backgroundImage: `url(${w.src})` }
-                                : { background: w.preview }
-                            }
-                          />
-                          <span className="px-0.5">
-                            <span className="block text-sm font-medium text-foreground">{w.name}</span>
-                            <span className="block text-[10px] leading-snug text-muted-foreground">
-                              {w.hint}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
-
-                <Field
-                  label="Layout"
-                  hint="How modules arrange — your module order and sizes stay the same."
-                >
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {LAYOUT_MODES.map((m) => {
-                      const selected = settings.layoutMode === m.id;
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          title={m.hint}
-                          aria-label={`Layout: ${m.name}`}
-                          aria-pressed={selected}
-                          onClick={() =>
-                            setSettings((s) => ({ ...s, layoutMode: m.id as LayoutModeId }))
-                          }
-                          className={cn(
-                            "flex flex-col gap-1 rounded-lg border px-3 py-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
-                            selected
-                              ? "border-ac/40 bg-ac/10"
-                              : "border-black/8 hover:bg-black/[0.03] dark:border-white/10 dark:hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <LayoutModeGlyph mode={m.id} active={selected} />
-                          <span className="text-sm font-medium text-foreground">{m.name}</span>
-                          <span className="text-[10px] leading-snug text-muted-foreground">
-                            {m.hint}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
-
-                <Field
-                  label="Surface"
-                  hint="Greyscale texture over the theme wash — colour comes from your theme."
-                >
-                  <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                    {SURFACES.map((s) => {
-                      const selected = settings.surface === s.id;
-                      return (
-                        <button
-                          key={s.id}
-                          type="button"
-                          title={s.hint}
-                          aria-label={`Surface: ${s.name}`}
-                          aria-pressed={selected}
-                          onClick={() => setSettings((prev) => ({ ...prev, surface: s.id as SurfaceId }))}
-                          className={cn(
-                            "flex flex-col gap-1.5 rounded-lg border p-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
-                            selected
-                              ? "border-ac/40 bg-ac/10"
-                              : "border-black/8 hover:bg-black/[0.03] dark:border-white/10 dark:hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              "relative h-10 w-full overflow-hidden rounded-md",
-                              selected && "ring-2 ring-ac"
-                            )}
-                            style={{
-                              background: selected
-                                ? undefined
-                                : "linear-gradient(160deg, hsl(var(--page-bg)), hsl(var(--ac) / 0.2))",
-                            }}
-                          >
-                            <span
-                              className="absolute inset-0"
-                              style={{
-                                background:
-                                  "linear-gradient(160deg, hsl(var(--page-bg)), hsl(var(--ac) / 0.25))",
-                              }}
-                            />
-                            {s.tile ? (
-                              <span
-                                className="absolute inset-0 opacity-55 mix-blend-multiply dark:opacity-45 dark:mix-blend-soft-light"
-                                style={{
-                                  backgroundImage: `url(${s.tile})`,
-                                  backgroundSize: s.tileSize ?? "128px 128px",
-                                  imageRendering: s.id === "dither" ? "pixelated" : undefined,
-                                }}
-                              />
-                            ) : (
-                              <span className="absolute inset-0 flex items-center justify-center text-[10px] text-muted-foreground">
-                                Flat
-                              </span>
-                            )}
-                          </span>
-                          <span className="px-0.5">
-                            <span className="block text-sm font-medium text-foreground">{s.name}</span>
-                            <span className="block text-[10px] leading-snug text-muted-foreground">
-                              {s.hint}
-                            </span>
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
-
-                <Field label="Font" hint="System faces only — no font downloads.">
-                  <div className="flex flex-col gap-1">
-                    {FONTS.map((f) => {
-                      const selected = settings.font === f.id;
-                      return (
-                        <button
-                          key={f.id}
-                          type="button"
-                          aria-label={`Font: ${f.name}`}
-                          aria-pressed={selected}
-                          onClick={() => setSettings((prev) => ({ ...prev, font: f.id as FontId }))}
-                          className={cn(
-                            "flex items-baseline justify-between gap-3 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
-                            selected
-                              ? "border-ac/40 bg-ac/10"
-                              : "border-black/8 hover:bg-black/[0.03] dark:border-white/10 dark:hover:bg-white/[0.05]"
-                          )}
-                        >
-                          <span className="min-w-0">
-                            <span className="block text-sm font-medium text-foreground">{f.name}</span>
-                            <span className="block text-[10px] text-muted-foreground">{f.hint}</span>
-                          </span>
-                          <span
-                            className="truncate text-sm text-foreground/80"
-                            style={{ fontFamily: f.stack }}
-                          >
-                            The quick brown fox
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </Field>
+              <TabsContent value="look" className="captab-tab-enter mt-0">
+                <SettingsLookPanel
+                  settings={settings}
+                  setSettings={setSettings}
+                  appearance={theme}
+                  onAppearanceChange={setTheme}
+                  section={lookSection}
+                  onSectionChange={setLookSection}
+                />
               </TabsContent>
 
-              <TabsContent value="clocks" className="captab-tab-enter mt-0 flex flex-col gap-5">
-                <Field
-                  label="World clocks"
-                  hint="Local time stays in the top bar. Add cities to show beside it."
-                >
-                  <ToggleGroup
-                    type="single"
-                    value={settings.worldClocksDisplay}
-                    onValueChange={(v) =>
-                      v && setSettings((s) => ({ ...s, worldClocksDisplay: v as WorldClocksDisplay }))
-                    }
-                    className="justify-start"
-                  >
-                    <ToggleGroupItem value="hover">On hover</ToggleGroupItem>
-                    <ToggleGroupItem value="always">Always</ToggleGroupItem>
-                  </ToggleGroup>
-                </Field>
-
-                <div className="flex flex-wrap gap-1.5">
-                  {WORLD_CLOCK_CITIES.map((city) => {
-                    const selected = settings.worldClocks.includes(city.id);
-                    return (
-                      <button
-                        key={city.id}
-                        type="button"
-                        aria-pressed={selected}
-                        title={city.city}
-                        onClick={() =>
-                          setSettings((s) => ({
-                            ...s,
-                            worldClocks: selected
-                              ? s.worldClocks.filter((id) => id !== city.id)
-                              : [...s.worldClocks, city.id],
-                          }))
-                        }
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ac/60",
-                          selected
-                            ? "bg-ac/15 text-foreground ring-1 ring-ac/35"
-                            : "bg-black/[0.04] text-muted-foreground hover:bg-black/[0.07] hover:text-foreground dark:bg-white/[0.05] dark:hover:bg-white/[0.08]"
-                        )}
-                      >
-                        <span className="font-medium">{city.city}</span>
-                        <span className="font-clock text-[10px] tabular-nums opacity-55">{city.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {settings.worldClocks.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No cities selected yet.</p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {settings.worldClocks.length} selected
-                    {settings.worldClocksDisplay === "hover" ? " · reveal on hover" : " · always visible"}
-                  </p>
-                )}
-              </TabsContent>
-
-              <TabsContent value="connections" className="captab-tab-enter mt-0 flex flex-col gap-6">
+              <TabsContent value="connections" className="captab-tab-enter mt-0 flex flex-col gap-5">
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Opt-in accounts for Resume modules. Keys stay in this browser — never uploaded by
-                  CapTab. Agenda feeds, RSS, and weather stay on each module.
+                  Opt-in accounts for Resume modules. Keys stay in this browser. {OAUTH_NOTE}
                 </p>
 
                 <ConnectionBlock
                   icon={Github}
                   title="GitHub"
-                  hint="Username loads public activity. A token unlocks Actions and notifications."
+                  hint="Username loads public activity. A token unlocks Actions, notifications, and the contribution graph."
                 >
                   <div className="flex flex-col gap-2">
                     <Input
@@ -635,9 +526,14 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                       className="h-9"
                       autoComplete="off"
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button type="button" size="sm" className="h-8" onClick={saveGithub}>
-                        <KeyRound className="mr-1.5 h-3.5 w-3.5" /> Save
+                        <KeyRound className="mr-1.5 h-3.5 w-3.5" /> {t("save", settings.locale)}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" className="h-8" asChild>
+                        <a href={GITHUB_TOKEN_URL} target="_blank" rel="noreferrer">
+                          Open GitHub token page
+                        </a>
                       </Button>
                       {ghSaved ? (
                         <span className="text-[11px] text-muted-foreground">Saved</span>
@@ -681,9 +577,14 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
                       className="h-9"
                       autoComplete="off"
                     />
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button type="button" size="sm" className="h-8" onClick={saveLinear}>
-                        <KeyRound className="mr-1.5 h-3.5 w-3.5" /> Save
+                        <KeyRound className="mr-1.5 h-3.5 w-3.5" /> {t("save", settings.locale)}
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" className="h-8" asChild>
+                        <a href={LINEAR_API_KEYS_URL} target="_blank" rel="noreferrer">
+                          Open Linear API keys
+                        </a>
                       </Button>
                       {linSaved ? (
                         <span className="text-[11px] text-muted-foreground">Saved</span>
@@ -710,41 +611,65 @@ export function SettingsDialog({ open, onOpenChange, settings, setSettings }: Se
 
                 <ConnectionBlock
                   icon={Bookmark}
-                  title="Bookmarks"
+                  title="Browser access"
                   hint={
                     extension
-                      ? "Chrome only reads bookmarks when you allow it. Nothing is uploaded."
-                      : "Install CapTab as an extension to enable bookmark access."
+                      ? "Optional Chrome permissions. CapTab only reads what you allow — nothing is uploaded."
+                      : "Install CapTab as an extension to enable browser access."
                   }
                 >
-                  <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={bookmarksAllowed ? "outline" : "default"}
-                      className="h-8"
-                      disabled={!extension || bookmarksBusy}
-                      onClick={() => void toggleBookmarks()}
-                    >
-                      {bookmarksBusy ? (
-                        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Bookmark className="mr-1.5 h-3.5 w-3.5" />
-                      )}
-                      {bookmarksAllowed ? "Revoke access" : "Allow bookmarks"}
-                    </Button>
-                    <span className="text-[11px] text-muted-foreground">
-                      {!extension
-                        ? "Unavailable here"
-                        : bookmarksAllowed
-                          ? "Allowed"
-                          : "Not allowed"}
-                    </span>
+                  <div className="flex flex-col gap-2.5">
+                    {BROWSER_PERMISSIONS.map((row) => {
+                      const Icon = row.icon;
+                      const allowed = permState[row.id] === true;
+                      const busy = permBusy === row.id;
+                      return (
+                        <div
+                          key={row.id}
+                          className="flex items-start justify-between gap-3 rounded-lg border border-black/6 px-3 py-2.5 dark:border-white/8"
+                        >
+                          <div className="min-w-0">
+                            <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                              <Icon className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                              {row.title}
+                            </p>
+                            <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                              {row.hint}
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant={allowed ? "outline" : "default"}
+                            className="h-8 shrink-0"
+                            disabled={!extension || busy}
+                            onClick={() => void togglePermission(row.id)}
+                          >
+                            {busy ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : null}
+                            {!extension ? "N/A" : allowed ? "Revoke" : "Allow"}
+                          </Button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </ConnectionBlock>
               </TabsContent>
 
               <TabsContent value="data" className="captab-tab-enter mt-0 flex flex-col gap-5">
+                <Field
+                  label="Chrome sync"
+                  hint="Mirror settings and shortcuts via chrome.storage.sync (extension only, size-limited)."
+                >
+                  <div className="flex items-center justify-between gap-3 rounded-lg border border-black/6 px-3 py-2.5 dark:border-white/8">
+                    <span className="text-sm text-foreground">Sync settings via Chrome sync</span>
+                    <Switch
+                      checked={settings.chromeSync}
+                      onCheckedChange={(v) => setSettings((s) => ({ ...s, chromeSync: v }))}
+                      aria-label="Chrome sync"
+                    />
+                  </div>
+                </Field>
+
                 <Field label="Version" hint={`Installed ${version}`}>
                   {updateInfo ? (
                     <div className="flex flex-col gap-2 rounded-lg border border-ac/25 bg-ac/10 px-3.5 py-3">
@@ -937,45 +862,6 @@ function ConnectionBlock({
       </div>
       {children}
     </div>
-  );
-}
-
-function LayoutModeGlyph({ mode, active }: { mode: LayoutModeId; active: boolean }) {
-  const cell = cn("rounded-[2px]", active ? "bg-ac/70" : "bg-foreground/25");
-  return (
-    <span className="mb-0.5 flex h-7 w-full items-end gap-0.5" aria-hidden>
-      {mode === "stack" ? (
-        <>
-          <span className={cn(cell, "h-4 flex-1")} />
-          <span className={cn(cell, "h-5 flex-1")} />
-        </>
-      ) : null}
-      {mode === "bento" ? (
-        <>
-          <span className={cn(cell, "h-5 w-[38%]")} />
-          <span className="flex h-5 flex-1 flex-col gap-0.5">
-            <span className={cn(cell, "h-2 w-full")} />
-            <span className={cn(cell, "h-2.5 w-full")} />
-          </span>
-          <span className={cn(cell, "h-4 w-[22%]")} />
-        </>
-      ) : null}
-      {mode === "magazine" ? (
-        <>
-          <span className={cn(cell, "h-5 w-[58%]")} />
-          <span className="flex h-5 flex-1 flex-col gap-0.5">
-            <span className={cn(cell, "h-2 w-full")} />
-            <span className={cn(cell, "h-2.5 w-full")} />
-          </span>
-        </>
-      ) : null}
-      {mode === "islands" ? (
-        <>
-          <span className={cn(cell, "mb-1.5 h-3.5 flex-1")} />
-          <span className={cn(cell, "mt-1.5 h-4 flex-1")} />
-        </>
-      ) : null}
-    </span>
   );
 }
 

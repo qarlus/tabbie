@@ -25,10 +25,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useStoredState } from "@/lib/storage";
 import { fastLinkProps } from "@/lib/fast-link";
-import { fetchGithub, GithubError, isActionRunning, relativeTime } from "@/lib/github";
+import { fetchContributions, fetchGithub, GithubError, isActionRunning, relativeTime, type ContributionCalendar } from "@/lib/github";
 import { UI_EVENTS } from "@/lib/events";
 import { ModuleEmpty } from "./ModuleEmpty";
 import { Panel } from "./Panel";
@@ -71,6 +76,9 @@ export function GithubActivityPanel({
   const [org, setOrg] = useState<string>("all");
   const [repo, setRepo] = useState<string>("all");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contribOpen, setContribOpen] = useState(false);
+  const [contrib, setContrib] = useState<ContributionCalendar | null>(null);
+  const [contribLoading, setContribLoading] = useState(false);
 
   const configured = config.username.trim().length > 0;
   const hasToken = config.token.trim().length > 0;
@@ -100,6 +108,22 @@ export function GithubActivityPanel({
     void refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configured, config.username, config.token]);
+
+  useEffect(() => {
+    if (!hasToken || !contribOpen) return;
+    let cancelled = false;
+    setContribLoading(true);
+    void fetchContributions(config.token)
+      .then((data) => {
+        if (!cancelled) setContrib(data);
+      })
+      .finally(() => {
+        if (!cancelled) setContribLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasToken, contribOpen, config.token]);
 
   useEffect(() => {
     const onRefresh = () => void refresh();
@@ -230,6 +254,30 @@ export function GithubActivityPanel({
           </span>
         </div>
       )}
+
+      {hasToken ? (
+        <Collapsible open={contribOpen} onOpenChange={setContribOpen} className="mb-3">
+          <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border border-black/6 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-black/[0.03] dark:border-white/8 dark:hover:bg-white/[0.04]">
+            <span>Contributions</span>
+            {contrib ? (
+              <span className="font-normal text-muted-foreground">
+                {contrib.totalContributions} last year
+              </span>
+            ) : contribLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            ) : null}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="pt-2">
+            {contribLoading && !contrib ? (
+              <p className="py-3 text-center text-xs text-muted-foreground">Loading graph…</p>
+            ) : contrib ? (
+              <ContributionHeatmap calendar={contrib} />
+            ) : (
+              <p className="py-2 text-xs text-muted-foreground">Could not load contribution graph.</p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      ) : null}
 
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap gap-0.5" role="group" aria-label="Filter by type">
@@ -402,6 +450,40 @@ function FeedRow({ item }: { item: GithubItem }) {
         </span>
       </a>
     </li>
+  );
+}
+
+function ContributionHeatmap({ calendar }: { calendar: ContributionCalendar }) {
+  const cell = 10;
+  const gap = 2;
+  const weeks = calendar.weeks.length;
+  const height = 7 * cell + 6 * gap;
+  const width = weeks * cell + (weeks - 1) * gap;
+
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="h-auto w-full max-w-md text-emerald-600/70 dark:text-emerald-500/70"
+      role="img"
+      aria-label={`${calendar.totalContributions} contributions in the last year`}
+    >
+      {calendar.weeks.map((week, wi) =>
+        week.map((day, di) => (
+          <rect
+            key={day.date}
+            x={wi * (cell + gap)}
+            y={di * (cell + gap)}
+            width={cell}
+            height={cell}
+            rx={2}
+            fill={day.count > 0 ? day.color : "currentColor"}
+            opacity={day.count > 0 ? 1 : 0.12}
+          >
+            <title>{`${day.date}: ${day.count} contributions`}</title>
+          </rect>
+        ))
+      )}
+    </svg>
   );
 }
 

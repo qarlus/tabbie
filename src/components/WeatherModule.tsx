@@ -292,6 +292,34 @@ export function WeatherModule({ data, onChange, leading, menu, className }: Weat
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
               <span>Humidity {Math.round(data.cache.humidity)}%</span>
               <span>Wind {Math.round(data.cache.windKmh)} km/h</span>
+              {data.cache.precipProb != null ? (
+                <span>Rain {Math.round(data.cache.precipProb)}%</span>
+              ) : null}
+              {data.cache.aqi != null ? <span>AQI {data.cache.aqi}</span> : null}
+            </div>
+          ) : null}
+
+          {data.cache?.hourly && data.cache.hourly.length > 0 ? (
+            <div className="flex gap-1 overflow-x-auto pb-0.5">
+              {data.cache.hourly.slice(0, 8).map((h) => {
+                const hour = h.time.slice(11, 16);
+                return (
+                  <div
+                    key={h.time}
+                    className="flex min-w-[2.75rem] flex-col items-center gap-0.5 rounded-md bg-black/[0.03] px-1.5 py-1 dark:bg-white/[0.04]"
+                  >
+                    <span className="text-[9px] tabular-nums text-muted-foreground">{hour}</span>
+                    <span className="font-clock text-[11px] tabular-nums text-foreground/85">
+                      {Math.round(data.celsius !== false ? h.tempC : (h.tempC * 9) / 5 + 32)}°
+                    </span>
+                    {h.precipProb > 0 ? (
+                      <span className="text-[8px] tabular-nums text-sky-600/80 dark:text-sky-400/80">
+                        {Math.round(h.precipProb)}%
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           ) : null}
 

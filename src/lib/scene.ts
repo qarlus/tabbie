@@ -2,10 +2,10 @@
 
 import type { SurfaceId } from "./look";
 
-export type WallpaperId = "none" | "riverside" | "marsh" | "meadow";
+export type WallpaperId = "none" | "riverside" | "marsh" | "meadow" | "daily";
 
 /** How modules arrange on the page — does not change stored module order/span. */
-export type LayoutModeId = "stack" | "bento" | "magazine" | "islands";
+export type LayoutModeId = "stack" | "bento" | "magazine" | "islands" | "freeform";
 
 export interface WallpaperDefinition {
   id: WallpaperId;
@@ -51,6 +51,12 @@ export const WALLPAPERS: WallpaperDefinition[] = [
     src: "./wallpapers/meadow.jpg",
     preview: "linear-gradient(160deg, #f0c8a8 0%, #e898b0 40%, #1a1814 100%)",
   },
+  {
+    id: "daily",
+    name: "Daily photo",
+    hint: "Curated Unsplash — network when selected",
+    preview: "linear-gradient(160deg, #87a8c4 0%, #5a7a9a 45%, #2a3a4a 100%)",
+  },
 ];
 
 export const LAYOUT_MODES: LayoutModeDefinition[] = [
@@ -73,6 +79,11 @@ export const LAYOUT_MODES: LayoutModeDefinition[] = [
     id: "islands",
     name: "Islands",
     hint: "Airy staggered cards with more space",
+  },
+  {
+    id: "freeform",
+    name: "Freeform",
+    hint: "Drag card modules anywhere on the canvas",
   },
 ];
 

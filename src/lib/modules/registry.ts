@@ -54,11 +54,20 @@ export function normalizeLayout(raw: Partial<LayoutState> | null | undefined): L
           // Drop unknown types only after registry is loaded; if empty registry, keep all
           (known.size === 0 || known.has(m.type))
       )
-      .map((m) => ({
-        id: m.id,
-        type: m.type,
-        span: m.span as ModuleSpan,
-      })),
+      .map((m) => {
+        const out: PlacedModule = {
+          id: m.id,
+          type: m.type,
+          span: m.span as ModuleSpan,
+        };
+        if (typeof m.x === "number" && Number.isFinite(m.x)) {
+          out.x = Math.min(100, Math.max(0, m.x));
+        }
+        if (typeof m.y === "number" && Number.isFinite(m.y)) {
+          out.y = Math.min(100, Math.max(0, m.y));
+        }
+        return out;
+      }),
   };
 }
 

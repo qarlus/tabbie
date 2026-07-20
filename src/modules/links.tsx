@@ -5,12 +5,12 @@ import type { LinksData } from "@/components/LinksModule";
 
 registerModule<LinksData>({
   type: "links",
-  label: "Link group",
-  description: "A named set of destinations beyond the shortcut strip.",
+  label: "Workspace",
+  description: "Named set of links — open the whole group in one click.",
   icon: BookMarked,
   defaultSpan: "half",
   lane: "notes",
-  defaultData: () => ({ title: "Links", links: [] }),
+  defaultData: () => ({ title: "Workspace", links: [] }),
   render: ({ data, onChange, leading, menu, className }) => (
     <LinksModule data={data} onChange={onChange} leading={leading} menu={menu} className={className} />
   ),

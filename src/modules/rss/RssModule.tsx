@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { CircleAlert, Loader2, Plus, RefreshCw, Rss, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { CircleAlert, Loader2, Plus, RefreshCw, Rss, Upload, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { relativeTime } from "@/lib/github";
@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { ModuleEmpty } from "@/components/ModuleEmpty";
 import { Panel } from "@/components/Panel";
 import { FeedError, fetchFeed } from "./parse";
+import { parseOpml } from "./opml";
 
 export interface RssFeedSource {
   id: string;
@@ -56,6 +57,7 @@ export function RssModule({ data, onChange, leading, menu, className }: RssModul
   const [error, setError] = useState<string | null>(null);
   const [draftUrl, setDraftUrl] = useState("");
   const [managing, setManaging] = useState(data.feeds.length === 0);
+  const opmlRef = useRef<HTMLInputElement>(null);
 
   const refresh = useCallback(async () => {
     if (data.feeds.length === 0) {
@@ -169,6 +171,30 @@ export function RssModule({ data, onChange, leading, menu, className }: RssModul
     });
   }
 
+  async function importOpmlFile(file: File) {
+    setError(null);
+    setLoading(true);
+    try {
+      const text = await file.text();
+      const parsed = parseOpml(text);
+      if (parsed.length === 0) {
+        setError("No feeds found in that OPML file.");
+        return;
+      }
+      let added = 0;
+      for (const feed of parsed) {
+        if (data.feeds.some((f) => f.url === feed.url)) continue;
+        await addFeed(feed.url, feed.title);
+        added += 1;
+      }
+      if (added === 0) setError("All feeds in the OPML file are already added.");
+    } catch {
+      setError("Could not read that OPML file.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   const items = data.cache?.items ?? [];
 
   return (
@@ -229,6 +255,27 @@ export function RssModule({ data, onChange, leading, menu, className }: RssModul
             </Button>
           </form>
           <div className="flex flex-wrap gap-1.5">
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5 text-[11px]"
+              disabled={loading}
+              onClick={() => opmlRef.current?.click()}
+            >
+              <Upload className="h-3.5 w-3.5" /> Import OPML
+            </Button>
+            <input
+              ref={opmlRef}
+              type="file"
+              accept=".opml,.xml,text/xml,application/xml"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void importOpmlFile(file);
+                e.target.value = "";
+              }}
+            />
             {RSS_PRESETS.filter((p) => !data.feeds.some((f) => f.url === p.url)).map((preset) => (
               <button
                 key={preset.url}

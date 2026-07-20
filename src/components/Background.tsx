@@ -1,19 +1,30 @@
 import { surfaceById, type SurfaceId } from "@/lib/look";
+import { dailyPhotoUrl } from "@/lib/photos";
 import { wallpaperById, type WallpaperId } from "@/lib/scene";
 
 interface BackgroundProps {
   surface?: SurfaceId;
   wallpaper?: WallpaperId;
+  customWallpaperDataUrl?: string;
 }
 
 /**
  * Scenic wallpaper (optional) + theme wash + greyscale surface tile.
  * Wallpaper sits under a soft veil so modules stay readable.
  */
-export function Background({ surface = "grain", wallpaper = "riverside" }: BackgroundProps) {
+export function Background({
+  surface = "grain",
+  wallpaper = "riverside",
+  customWallpaperDataUrl = "",
+}: BackgroundProps) {
   const def = surfaceById(surface);
   const scene = wallpaperById(wallpaper);
-  const hasWallpaper = !!scene.src;
+
+  const customUrl = customWallpaperDataUrl.trim();
+  const dailyUrl = wallpaper === "daily" ? dailyPhotoUrl() : undefined;
+  const localUrl = scene.src;
+  const imageUrl = customUrl || dailyUrl || localUrl;
+  const hasWallpaper = !!imageUrl;
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
@@ -23,9 +34,8 @@ export function Background({ surface = "grain", wallpaper = "riverside" }: Backg
         <>
           <div
             className="captab-wallpaper absolute inset-0 bg-cover bg-center bg-no-repeat"
-            style={{ backgroundImage: `url(${scene.src})` }}
+            style={{ backgroundImage: `url(${imageUrl})` }}
           />
-          {/* Soft veil — keeps glass panels legible over busy photos */}
           <div className="captab-wallpaper-veil absolute inset-0" />
         </>
       ) : null}

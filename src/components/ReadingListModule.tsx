@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Check, Plus, X } from "lucide-react";
+import { BookOpen, Check, Clock, Plus, RotateCcw, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,11 +17,15 @@ import { ModuleEmpty } from "./ModuleEmpty";
 import { Panel } from "./Panel";
 import { SiteIcon } from "./SiteIcon";
 
+export type TriageStatus = "open" | "later" | "done";
+
 export interface ReadingItem {
   id: string;
   title: string;
   url: string;
-  done: boolean;
+  /** @deprecated migrated to status */
+  done?: boolean;
+  status?: TriageStatus;
   addedAt: number;
 }
 
@@ -37,6 +41,21 @@ interface ReadingListModuleProps {
   className?: string;
 }
 
+function statusOf(item: ReadingItem): TriageStatus {
+  if (item.status === "open" || item.status === "later" || item.status === "done") return item.status;
+  return item.done ? "done" : "open";
+}
+
+function normalizeItems(items: ReadingItem[]): ReadingItem[] {
+  return items.map((i) => ({
+    id: i.id,
+    title: i.title,
+    url: i.url,
+    addedAt: i.addedAt,
+    status: statusOf(i),
+  }));
+}
+
 export function ReadingListModule({
   data,
   onChange,
@@ -45,42 +64,47 @@ export function ReadingListModule({
   className,
 }: ReadingListModuleProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const open = data.items.filter((i) => !i.done);
-  const done = data.items.filter((i) => i.done);
+  const items = normalizeItems(data.items);
+  const open = items.filter((i) => statusOf(i) === "open");
+  const later = items.filter((i) => statusOf(i) === "later");
+  const done = items.filter((i) => statusOf(i) === "done");
+  const toDeal = open.length;
 
-  function addItem(item: Omit<ReadingItem, "id" | "done" | "addedAt">) {
-    onChange({
-      items: [
-        { id: uid(), ...item, done: false, addedAt: Date.now() },
-        ...data.items,
-      ],
-    });
+  function commit(nextItems: ReadingItem[]) {
+    onChange({ items: normalizeItems(nextItems) });
   }
 
-  function toggleDone(id: string) {
-    onChange({
-      items: data.items.map((i) => (i.id === id ? { ...i, done: !i.done } : i)),
-    });
+  function addItem(item: Omit<ReadingItem, "id" | "status" | "addedAt">) {
+    commit([
+      { id: uid(), ...item, status: "open", addedAt: Date.now() },
+      ...items,
+    ]);
+  }
+
+  function setStatus(id: string, status: TriageStatus) {
+    commit(items.map((i) => (i.id === id ? { ...i, status } : i)));
   }
 
   function remove(id: string) {
-    onChange({ items: data.items.filter((i) => i.id !== id) });
+    commit(items.filter((i) => i.id !== id));
   }
 
   function clearDone() {
-    onChange({ items: data.items.filter((i) => !i.done) });
+    commit(items.filter((i) => statusOf(i) !== "done"));
   }
+
+  const ordered = [...open, ...later, ...done];
 
   return (
     <Panel
-      title="Reading list"
+      title="Triage"
       icon={<BookOpen className="h-3.5 w-3.5" />}
       leading={leading}
       className={className}
       badge={
-        open.length > 0 ? (
+        toDeal > 0 ? (
           <span className="rounded-md bg-ac/15 px-1.5 py-0.5 text-[10px] font-medium text-ac">
-            {open.length}
+            {toDeal} to deal with
           </span>
         ) : null
       }
@@ -92,14 +116,14 @@ export function ReadingListModule({
               onClick={clearDone}
               className="rounded-md px-1.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
             >
-              Clear read
+              Clear done
             </button>
           ) : null}
           <button
             type="button"
             onClick={() => setDialogOpen(true)}
             className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Add to reading list"
+            aria-label="Add to triage"
           >
             <Plus className="h-3 w-3" /> Add
           </button>
@@ -108,11 +132,11 @@ export function ReadingListModule({
       }
     >
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        {data.items.length === 0 ? (
+        {items.length === 0 ? (
           <ModuleEmpty
             icon={BookOpen}
-            title="Nothing to read"
-            hint="Save articles and docs for later. Opens in a new tab."
+            title="Inbox clear"
+            hint="Drop links to deal with — Done or Later. Not another notes app."
             action={
               <Button type="button" size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> Add link
@@ -121,53 +145,89 @@ export function ReadingListModule({
           />
         ) : (
           <ul className="flex flex-col gap-0.5">
-            {[...open, ...done].map((item) => (
-              <li key={item.id}>
-                <div
-                  className={`group flex items-center gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.06] ${
-                    item.done ? "opacity-55" : ""
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleDone(item.id)}
-                    className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors ${
-                      item.done
-                        ? "border-ac bg-ac text-white"
-                        : "border-black/20 dark:border-white/25"
+            {ordered.map((item) => {
+              const status = statusOf(item);
+              return (
+                <li key={item.id}>
+                  <div
+                    className={`group flex items-center gap-1.5 rounded-lg px-2 py-2 transition-colors hover:bg-black/[0.04] dark:hover:bg-white/[0.06] ${
+                      status === "done" ? "opacity-55" : ""
                     }`}
-                    aria-label={item.done ? "Mark unread" : "Mark read"}
-                    aria-pressed={item.done}
                   >
-                    {item.done ? <Check className="h-2.5 w-2.5" strokeWidth={3} /> : null}
-                  </button>
-                  <a
-                    {...fastLinkProps(item.url)}
-                    className="flex min-w-0 flex-1 items-center gap-2.5"
-                  >
-                    <SiteIcon url={item.url} name={item.title} size={16} className="shrink-0" />
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={`block truncate text-sm ${item.done ? "line-through" : "font-medium text-foreground"}`}
+                    <a
+                      {...fastLinkProps(item.url)}
+                      className="flex min-w-0 flex-1 items-center gap-2.5"
+                    >
+                      <SiteIcon url={item.url} name={item.title} size={16} className="shrink-0" />
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={`block truncate text-sm ${
+                            status === "done" ? "line-through" : "font-medium text-foreground"
+                          }`}
+                        >
+                          {item.title}
+                        </span>
+                        <span className="block truncate text-[11px] text-muted-foreground">
+                          {status === "later" ? "Later · " : ""}
+                          {hostnameOf(item.url)}
+                        </span>
+                      </span>
+                    </a>
+                    {status !== "done" ? (
+                      <button
+                        type="button"
+                        onClick={() => setStatus(item.id, "done")}
+                        className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity hover:bg-ac/15 hover:text-ac group-hover:opacity-100"
+                        aria-label="Done"
                       >
-                        {item.title}
+                        Done
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setStatus(item.id, "open")}
+                        className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                        aria-label="Reopen"
+                      >
+                        <RotateCcw className="h-3 w-3" />
+                      </button>
+                    )}
+                    {status === "open" ? (
+                      <button
+                        type="button"
+                        onClick={() => setStatus(item.id, "later")}
+                        className="rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground opacity-0 transition-opacity hover:bg-black/5 hover:text-foreground group-hover:opacity-100 dark:hover:bg-white/10"
+                        aria-label="Later"
+                      >
+                        Later
+                      </button>
+                    ) : status === "later" ? (
+                      <button
+                        type="button"
+                        onClick={() => setStatus(item.id, "open")}
+                        className="rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                        aria-label="Back to inbox"
+                      >
+                        <Clock className="h-3 w-3" />
+                      </button>
+                    ) : null}
+                    {status === "done" ? (
+                      <span className="flex h-4 w-4 items-center justify-center rounded border border-ac bg-ac text-white">
+                        <Check className="h-2.5 w-2.5" strokeWidth={3} />
                       </span>
-                      <span className="block truncate text-[11px] text-muted-foreground">
-                        {hostnameOf(item.url)}
-                      </span>
-                    </span>
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => remove(item.id)}
-                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
-                    aria-label="Remove"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </li>
-            ))}
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => remove(item.id)}
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:text-foreground group-hover:opacity-100"
+                      aria-label="Remove"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>
@@ -220,8 +280,8 @@ function AddReadingDialog({
       <DialogContent className="sm:max-w-md">
         <form onSubmit={submit}>
           <DialogHeader>
-            <DialogTitle>Add to reading list</DialogTitle>
-            <DialogDescription>Save a URL to finish later. Stays on this device.</DialogDescription>
+            <DialogTitle>Add to triage</DialogTitle>
+            <DialogDescription>Capture a link to deal with. Stays on this device.</DialogDescription>
           </DialogHeader>
           <div className="mt-4 flex flex-col gap-3">
             <div className="flex flex-col gap-1.5">

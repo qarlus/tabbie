@@ -4,8 +4,8 @@ import { ReadingListModule, type ReadingListData } from "@/components/ReadingLis
 
 registerModule<ReadingListData>({
   type: "reading",
-  label: "Reading list",
-  description: "Save articles and docs to finish later.",
+  label: "Triage",
+  description: "Quiet inbox for links — Done or Later. Not another notes app.",
   icon: BookOpen,
   defaultSpan: "half",
   lane: "notes",

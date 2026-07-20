@@ -44,6 +44,10 @@ export const THEME_IDS: ThemeId[] = [
 
 export type WorldClocksDisplay = "hover" | "always";
 
+export type ClockFaceId = "digital" | "analog" | "binary" | "literary";
+
+export const CLOCK_FACE_IDS: ClockFaceId[] = ["digital", "analog", "binary", "literary"];
+
 export interface Settings {
   name: string;
   theme: ThemeId;
@@ -51,14 +55,30 @@ export interface Settings {
   surface: SurfaceId;
   /** Full-bleed scenic image under the wash. */
   wallpaper: WallpaperId;
+  /** User-uploaded image/GIF as data URL — overrides wallpaper when set. */
+  customWallpaperDataUrl: string;
   /** How module cards arrange — order/span stay in layout storage. */
   layoutMode: LayoutModeId;
   engine: EngineId;
   clock24: boolean;
+  /** Local clock display style in the top bar. */
+  clockFace: ClockFaceId;
   /** Selected world-clock city ids from the curated catalog. */
   worldClocks: string[];
   /** How secondary clocks appear next to local time. */
   worldClocksDisplay: WorldClocksDisplay;
+  /** User-injected CSS scoped to the page. */
+  customCss: string;
+  /** Override body font-family stack when non-empty. */
+  customFontStack: string;
+  /** Show AI chat shortcut row under bookmarks. */
+  showAiShortcuts: boolean;
+  /** UI language code (i18n skeleton). */
+  locale: string;
+  /** Mirror settings + shortcuts via chrome.storage.sync. */
+  chromeSync: boolean;
+  /** Optional data-URL favicon for the new tab document. */
+  customFaviconDataUrl: string;
   /**
    * @deprecated Migrated into `layout` storage.
    */
@@ -75,11 +95,19 @@ export const DEFAULT_SETTINGS: Settings = {
   font: "rounded",
   surface: "grain",
   wallpaper: "riverside",
+  customWallpaperDataUrl: "",
   layoutMode: "bento",
   engine: "duckduckgo",
   clock24: false,
+  clockFace: "digital",
   worldClocks: [],
   worldClocksDisplay: "hover",
+  customCss: "",
+  customFontStack: "",
+  showAiShortcuts: false,
+  locale: "en",
+  chromeSync: false,
+  customFaviconDataUrl: "",
 };
 
 function themeFromLegacy(accent?: string, background?: string): ThemeId {
@@ -111,6 +139,15 @@ function normalizeWorldClocksDisplay(raw: unknown): WorldClocksDisplay {
   return raw === "always" || raw === "hover" ? raw : DEFAULT_SETTINGS.worldClocksDisplay;
 }
 
+function isClockFaceId(value: string | undefined): value is ClockFaceId {
+  return !!value && (CLOCK_FACE_IDS as string[]).includes(value);
+}
+
+function normalizeLocale(raw: unknown): string {
+  if (typeof raw !== "string" || !raw.trim()) return DEFAULT_SETTINGS.locale;
+  return raw.trim().slice(0, 8);
+}
+
 /** Merge stored settings with defaults so older backups stay valid. */
 export function normalizeSettings(raw: Partial<Settings> | null | undefined): Settings {
   const theme = isThemeId(raw?.theme) ? raw.theme : themeFromLegacy(raw?.accent, raw?.background);
@@ -124,11 +161,23 @@ export function normalizeSettings(raw: Partial<Settings> | null | undefined): Se
         ? "stipple"
         : DEFAULT_SETTINGS.surface,
     wallpaper: isWallpaperId(raw?.wallpaper) ? raw.wallpaper : DEFAULT_SETTINGS.wallpaper,
+    customWallpaperDataUrl:
+      typeof raw?.customWallpaperDataUrl === "string" ? raw.customWallpaperDataUrl : "",
     layoutMode: isLayoutModeId(raw?.layoutMode) ? raw.layoutMode : DEFAULT_SETTINGS.layoutMode,
     engine: raw?.engine ?? DEFAULT_SETTINGS.engine,
     clock24: typeof raw?.clock24 === "boolean" ? raw.clock24 : DEFAULT_SETTINGS.clock24,
+    clockFace: isClockFaceId(raw?.clockFace) ? raw.clockFace : DEFAULT_SETTINGS.clockFace,
     worldClocks: normalizeWorldClocks(raw?.worldClocks),
     worldClocksDisplay: normalizeWorldClocksDisplay(raw?.worldClocksDisplay),
+    customCss: typeof raw?.customCss === "string" ? raw.customCss : DEFAULT_SETTINGS.customCss,
+    customFontStack:
+      typeof raw?.customFontStack === "string" ? raw.customFontStack : DEFAULT_SETTINGS.customFontStack,
+    showAiShortcuts:
+      typeof raw?.showAiShortcuts === "boolean" ? raw.showAiShortcuts : DEFAULT_SETTINGS.showAiShortcuts,
+    locale: normalizeLocale(raw?.locale),
+    chromeSync: typeof raw?.chromeSync === "boolean" ? raw.chromeSync : DEFAULT_SETTINGS.chromeSync,
+    customFaviconDataUrl:
+      typeof raw?.customFaviconDataUrl === "string" ? raw.customFaviconDataUrl : "",
   };
 }
 

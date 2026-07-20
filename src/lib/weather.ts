@@ -20,6 +20,17 @@ export interface WeatherSnapshot {
   humidity: number;
   windKmh: number;
   fetchedAt: number;
+  /** Current-hour precipitation probability (0–100). */
+  precipProb?: number;
+  /** Next hours forecast. */
+  hourly?: {
+    time: string;
+    tempC: number;
+    precipProb: number;
+    weatherCode: number;
+  }[];
+  /** US AQI when available from Open-Meteo air quality API. */
+  aqi?: number | null;
 }
 
 export interface GeocodeResult {
@@ -128,6 +139,25 @@ export async function searchPlaces(query: string): Promise<GeocodeResult[]> {
   }));
 }
 
+async function fetchAirQuality(
+  place: WeatherPlace
+): Promise<number | null> {
+  try {
+    const url = new URL("https://air-quality-api.open-meteo.com/v1/air-quality");
+    url.searchParams.set("latitude", String(place.latitude));
+    url.searchParams.set("longitude", String(place.longitude));
+    url.searchParams.set("current", "us_aqi");
+    url.searchParams.set("timezone", "auto");
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = (await res.json()) as { current?: { us_aqi?: number } };
+    const aqi = data.current?.us_aqi;
+    return typeof aqi === "number" ? aqi : null;
+  } catch {
+    return null;
+  }
+}
+
 async function fetchWeatherNetwork(place: WeatherPlace): Promise<WeatherSnapshot> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(place.latitude));
@@ -136,9 +166,11 @@ async function fetchWeatherNetwork(place: WeatherPlace): Promise<WeatherSnapshot
     "current",
     "temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m"
   );
+  url.searchParams.set("hourly", "temperature_2m,precipitation_probability,weather_code");
+  url.searchParams.set("forecast_hours", "12");
   url.searchParams.set("wind_speed_unit", "kmh");
   url.searchParams.set("timezone", "auto");
-  const res = await fetch(url);
+  const [res, aqi] = await Promise.all([fetch(url), fetchAirQuality(place)]);
   if (res.status === 429) {
     throw new WeatherError("Weather is rate-limited — try again in a minute.", 429);
   }
@@ -149,18 +181,49 @@ async function fetchWeatherNetwork(place: WeatherPlace): Promise<WeatherSnapshot
       relative_humidity_2m?: number;
       weather_code?: number;
       wind_speed_10m?: number;
+      time?: string;
+    };
+    hourly?: {
+      time?: string[];
+      temperature_2m?: number[];
+      precipitation_probability?: number[];
+      weather_code?: number[];
     };
   };
   const c = data.current;
   if (!c || typeof c.temperature_2m !== "number") {
     throw new WeatherError("Weather response was incomplete");
   }
+
+  const times = data.hourly?.time ?? [];
+  const temps = data.hourly?.temperature_2m ?? [];
+  const precips = data.hourly?.precipitation_probability ?? [];
+  const codes = data.hourly?.weather_code ?? [];
+  const hourly = times.slice(0, 12).map((time, i) => ({
+    time,
+    tempC: temps[i] ?? 0,
+    precipProb: precips[i] ?? 0,
+    weatherCode: codes[i] ?? 0,
+  }));
+
+  let precipProb: number | undefined;
+  if (c.time && hourly.length > 0) {
+    const idx = times.indexOf(c.time);
+    if (idx >= 0) precipProb = precips[idx];
+    else precipProb = precips[0];
+  } else if (precips.length > 0) {
+    precipProb = precips[0];
+  }
+
   return {
     temperatureC: c.temperature_2m,
     weatherCode: c.weather_code ?? 0,
     humidity: c.relative_humidity_2m ?? 0,
     windKmh: c.wind_speed_10m ?? 0,
     fetchedAt: Date.now(),
+    precipProb,
+    hourly,
+    aqi,
   };
 }
 

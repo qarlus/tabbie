@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookMarked, Plus, X } from "lucide-react";
+import { BookMarked, ExternalLink, Plus, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { createTabs } from "@/lib/chrome";
 import { hostnameOf, isValidUrl, normalizeUrl, uid } from "@/lib/search";
 import { fastLinkProps } from "@/lib/fast-link";
 import { ModuleEmpty } from "./ModuleEmpty";
@@ -38,10 +39,24 @@ interface LinksModuleProps {
 
 export function LinksModule({ data, onChange, leading, menu, className }: LinksModuleProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [opening, setOpening] = useState(false);
+
+  async function openAll() {
+    if (data.links.length === 0 || opening) return;
+    setOpening(true);
+    try {
+      await createTabs(
+        data.links.map((l) => l.url),
+        true
+      );
+    } finally {
+      setOpening(false);
+    }
+  }
 
   return (
     <Panel
-      title={data.title || "Links"}
+      title={data.title || "Workspace"}
       icon={<BookMarked className="h-3.5 w-3.5" />}
       leading={leading}
       className={className}
@@ -54,6 +69,17 @@ export function LinksModule({ data, onChange, leading, menu, className }: LinksM
       }
       actions={
         <>
+          {data.links.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => void openAll()}
+              disabled={opening}
+              className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[11px] text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
+              aria-label="Open all links"
+            >
+              <ExternalLink className="h-3 w-3" /> Open all
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setDialogOpen(true)}
@@ -70,9 +96,9 @@ export function LinksModule({ data, onChange, leading, menu, className }: LinksM
         <Input
           value={data.title}
           onChange={(e) => onChange({ ...data, title: e.target.value })}
-          placeholder="Group name"
+          placeholder="Workspace name"
           className="h-8 border-transparent bg-transparent px-1 text-sm font-medium shadow-none focus-visible:border-black/10 focus-visible:bg-black/[0.03] dark:focus-visible:border-white/10 dark:focus-visible:bg-white/[0.03]"
-          aria-label="Link group title"
+          aria-label="Workspace title"
         />
       </div>
 
@@ -80,8 +106,8 @@ export function LinksModule({ data, onChange, leading, menu, className }: LinksM
         {data.links.length === 0 ? (
           <ModuleEmpty
             icon={BookMarked}
-            title="No links yet"
-            hint="Add destinations you open often. Stored only on this device."
+            title="Empty workspace"
+            hint="Name a set of links (Client A, Capbar, Admin) and open them as a group."
             action={
               <Button type="button" size="sm" variant="outline" onClick={() => setDialogOpen(true)}>
                 <Plus className="mr-1.5 h-3.5 w-3.5" /> Add link

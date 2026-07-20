@@ -11,6 +11,10 @@ export interface PlacedModule {
   id: string;
   type: string;
   span: ModuleSpan;
+  /** Freeform layout — horizontal position as percent (0–100). */
+  x?: number;
+  /** Freeform layout — vertical position as percent (0–100). */
+  y?: number;
 }
 
 export interface LayoutState {

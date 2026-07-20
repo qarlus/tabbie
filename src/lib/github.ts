@@ -274,3 +274,81 @@ export function relativeTime(ts: number): string {
 export function isActionRunning(state: string): boolean {
   return state === "queued" || state === "in_progress" || state === "waiting" || state === "pending" || state === "requested";
 }
+
+export interface ContributionDay {
+  date: string;
+  count: number;
+  color: string;
+}
+
+export interface ContributionCalendar {
+  weeks: ContributionDay[][];
+  totalContributions: number;
+}
+
+/** Fetch the authenticated user's contribution calendar via GraphQL. */
+export async function fetchContributions(token: string): Promise<ContributionCalendar | null> {
+  if (!token.trim()) return null;
+  const query = `
+    query {
+      viewer {
+        contributionsCollection {
+          contributionCalendar {
+            totalContributions
+            weeks {
+              contributionDays {
+                date
+                contributionCount
+                color
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  try {
+    const res = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token.trim()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      data?: {
+        viewer?: {
+          contributionsCollection?: {
+            contributionCalendar?: {
+              totalContributions?: number;
+              weeks?: {
+                contributionDays?: {
+                  date: string;
+                  contributionCount: number;
+                  color: string;
+                }[];
+              }[];
+            };
+          };
+        };
+      };
+    };
+    const cal = data.data?.viewer?.contributionsCollection?.contributionCalendar;
+    if (!cal?.weeks) return null;
+    const weeks = cal.weeks.map((w) =>
+      (w.contributionDays ?? []).map((d) => ({
+        date: d.date,
+        count: d.contributionCount,
+        color: d.color,
+      }))
+    );
+    return {
+      weeks,
+      totalContributions: cal.totalContributions ?? 0,
+    };
+  } catch {
+    return null;
+  }
+}

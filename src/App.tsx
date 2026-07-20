@@ -3,11 +3,23 @@ import { Background } from "@/components/Background";
 import { TopBar } from "@/components/TopBar";
 import { SearchBar } from "@/components/SearchBar";
 import { ShortcutGrid, type ShortcutEditorState } from "@/components/ShortcutGrid";
+import { AiShortcuts } from "@/components/AiShortcuts";
+import { PageTabs } from "@/components/PageTabs";
 import { ModuleDock } from "@/components/ModuleDock";
+import { CommandPalette } from "@/components/CommandPalette";
 import { SettingsDialog } from "@/components/SettingsDialog";
-import { useStoredState } from "@/lib/storage";
+import { useStoredState, writeKey } from "@/lib/storage";
+import { touchOpenStreak } from "@/lib/open-streak";
 import { pushRecent } from "@/lib/search";
 import { normalizeLayout, type LayoutState } from "@/lib/modules";
+import {
+  layoutFromPages,
+  loadPagesState,
+  normalizePagesState,
+  updateActivePageModules,
+  type PagesState,
+} from "@/lib/pages";
+import { pullChromeSync, syncIfEnabled } from "@/lib/chrome-sync";
 import { DEFAULT_SETTINGS, normalizeSettings, type Settings, type Shortcut } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -43,20 +55,40 @@ export default function App() {
 
   const [shortcuts, setShortcuts] = useStoredState<Shortcut[]>("shortcuts", DEFAULT_SHORTCUTS);
   const [recents, setRecents] = useStoredState<string[]>("recent-searches", []);
-  const [layoutRaw, setLayoutRaw] = useStoredState<LayoutState>("layout", { modules: [] });
-  const layout = useMemo(() => normalizeLayout(layoutRaw), [layoutRaw]);
+  const [pagesRaw, setPagesRaw] = useStoredState<PagesState>("pages", loadPagesState());
+  const pages = useMemo(() => normalizePagesState(pagesRaw), [pagesRaw]);
+
+  const layout = useMemo(() => layoutFromPages(pages), [pages]);
+
   const setLayout = (next: LayoutState | ((prev: LayoutState) => LayoutState)) => {
-    setLayoutRaw((prev) => {
-      const current = normalizeLayout(prev);
-      return normalizeLayout(typeof next === "function" ? next(current) : next);
+    setPagesRaw((prevPages) => {
+      const current = layoutFromPages(normalizePagesState(prevPages));
+      const resolved = typeof next === "function" ? next(current) : next;
+      const normalized = normalizeLayout(resolved);
+      const updated = updateActivePageModules(normalizePagesState(prevPages), normalized.modules);
+      writeKey("layout", normalized);
+      return updated;
     });
   };
+
+  const setPages = (next: PagesState | ((prev: PagesState) => PagesState)) => {
+    setPagesRaw((prev) => {
+      const current = normalizePagesState(prev);
+      const resolved = typeof next === "function" ? next(current) : next;
+      const normalized = normalizePagesState(resolved);
+      writeKey("layout", layoutFromPages(normalized));
+      return normalized;
+    });
+  };
+
   const hasModules = layout.modules.length > 0;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const [editor, setEditor] = useState<ShortcutEditorState>({ open: false, editing: null });
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const syncPulledRef = useRef(false);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -65,10 +97,54 @@ export default function App() {
     root.dataset.surface = settings.surface;
     delete root.dataset.accent;
     delete root.dataset.bg;
-  }, [settings.theme, settings.font, settings.surface]);
+
+    const stack = settings.customFontStack.trim();
+    if (stack) {
+      root.style.setProperty("--captab-font", stack);
+    } else {
+      root.style.removeProperty("--captab-font");
+    }
+  }, [settings.theme, settings.font, settings.surface, settings.customFontStack]);
+
+  useEffect(() => {
+    const href = settings.customFaviconDataUrl.trim();
+    let link = document.querySelector<HTMLLinkElement>("link[data-captab-favicon]");
+    if (!href) {
+      link?.remove();
+      return;
+    }
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      link.dataset.captabFavicon = "1";
+      document.head.appendChild(link);
+    }
+    link.href = href;
+  }, [settings.customFaviconDataUrl]);
+
+  useEffect(() => {
+    touchOpenStreak();
+  }, []);
+
+  useEffect(() => {
+    if (!settings.chromeSync || syncPulledRef.current) return;
+    syncPulledRef.current = true;
+    void pullChromeSync().then((pulled) => {
+      if (pulled) window.location.reload();
+    });
+  }, [settings.chromeSync]);
+
+  useEffect(() => {
+    syncIfEnabled(settings, shortcuts);
+  }, [settings, shortcuts]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+        return;
+      }
       if (e.key === "/" && !isEditableTarget(e.target)) {
         e.preventDefault();
         searchRef.current?.focus();
@@ -81,7 +157,14 @@ export default function App() {
 
   return (
     <div className="relative flex min-h-full flex-col">
-      <Background surface={settings.surface} wallpaper={settings.wallpaper} />
+      {settings.customCss.trim() ? (
+        <style id="captab-custom-css">{settings.customCss}</style>
+      ) : null}
+      <Background
+        surface={settings.surface}
+        wallpaper={settings.wallpaper}
+        customWallpaperDataUrl={settings.customWallpaperDataUrl}
+      />
       <TopBar
         settings={settings}
         onOpenSettings={() => setSettingsOpen(true)}
@@ -121,7 +204,14 @@ export default function App() {
           <div className="captab-enter captab-enter-delay-1 w-full">
             <ShortcutGrid shortcuts={shortcuts} setShortcuts={setShortcuts} editor={editor} setEditor={setEditor} />
           </div>
+          {settings.showAiShortcuts ? (
+            <AiShortcuts className="captab-enter captab-enter-delay-1" />
+          ) : null}
         </div>
+
+        {hasModules ? (
+          <PageTabs pages={pages} onChange={setPages} className="captab-enter w-full" />
+        ) : null}
 
         <div className="captab-enter captab-enter-delay-2 w-full">
           <ModuleDock
@@ -133,6 +223,13 @@ export default function App() {
         </div>
       </main>
 
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        shortcuts={shortcuts}
+        onOpenSettings={() => setSettingsOpen(true)}
+        locale={settings.locale}
+      />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} settings={settings} setSettings={setSettings} />
     </div>
   );
