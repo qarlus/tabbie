@@ -2,13 +2,17 @@
   "manifest_version": 3,
   "name": "CapTab — Local-first New Tab",
   "short_name": "CapTab",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A calm, local-first new tab — Capbar’s tab sibling. Your data stays in this browser.",
   "chrome_url_overrides": {
     "newtab": "index.html"
   },
-  "permissions": ["favicon"],
-  "optional_permissions": ["bookmarks"],
+  "permissions": [
+    "favicon"
+  ],
+  "optional_permissions": [
+    "bookmarks"
+  ],
   "host_permissions": [
     "https://api.github.com/*",
     "https://api.linear.app/*",
